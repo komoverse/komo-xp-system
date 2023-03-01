@@ -11,5 +11,5 @@ class NmrExperience extends Model
 
     protected $table = 'tb_nmr_experiences';
     protected $guarded = ['id'];
-    protected $fillable = ['account_id', 'total_experience'];
+    protected $fillable = ['komo_username', 'total_experience'];
 }

@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('tb_compendium_experiences', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('account_id');
+            $table->string('komo_username');
             $table->unsignedBigInteger('total_experience')->default(0);
             $table->timestamps();
         });
