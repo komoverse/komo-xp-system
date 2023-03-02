@@ -5,11 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class NmrExperienceEvent extends Model
+class MmrExperienceEvent extends Model
 {
     use HasFactory;
 
-    protected $table = 'tb_nmr_experience_events';
+    protected $table = 'tb_mmr_experience_events';
     protected $guarded = ['id'];
-    protected $fillable = ['nmr_experience_id', 'source', 'delta'];
+    protected $fillable = ['mmr_experience_id', 'source', 'delta'];
 }

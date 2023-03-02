@@ -5,8 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\DailyExperience;
 use App\Models\DailyExperienceEvent;
-use App\Models\NmrExperience;
-use App\Models\NmrExperienceEvent;
+use App\Models\MmrExperience;
+use App\Models\MmrExperienceEvent;
 use App\Models\Experience;
 use App\Models\ExperienceEvent;
 use App\Helpers\Helper;
@@ -39,6 +39,7 @@ class ExperienceController extends Controller
 
     private function add_xp(Request $request){
         // TODO: REWORK VALIDATION SO IT SENDS A PROPER ERROR MESSAGE
+        // TODO: Verify that API source and username exists in the DB, don't allow otherwise
         $validated = $request->validate([
             'komo-username' => 'required|max:255',
             'amount' => 'required|numeric|max:2147483647',

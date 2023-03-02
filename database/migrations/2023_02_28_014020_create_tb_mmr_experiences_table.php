@@ -11,11 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('tb_nmr_experience_events', function (Blueprint $table) {
+        Schema::create('tb_mmr_experiences', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('nmr_experience_id');
-            $table->string('source');
-            $table->bigInteger('delta')->default('0');
+            $table->string('komo_username');
+            $table->unsignedBigInteger('total_experience')->default(0);
             $table->timestamps();
         });
     }
@@ -25,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('tb_nmr_experience_events');
+        Schema::dropIfExists('tb_mmr_experiences');
     }
 };
