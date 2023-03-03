@@ -42,9 +42,6 @@ class ExperienceController extends Controller
 
     private function add_xp(Request $request){
         // Initialize variables.
-        $komo_username = $request['komo-username'];
-        $amount = $request['amount'];
-        $source = $request['source'];
         $json = [
             'status' => 'fail',
             'message' => null,
@@ -59,14 +56,13 @@ class ExperienceController extends Controller
         ]);
 
         if ($validator->fails()) {
-            $json['message'] = ($this->is_production == false) ? $validator->errors() : null;
+            $json['message'] = (!$this->is_production) ? $validator->errors() : null;
             return response()->json($json, 400); // Bad Request
         }
 
         // Start tallying up the experience gained.
         $daily_experience = $this->get_daily_experience($request);
-        $daily_experience->total_experience += $amount;
-        max($daily_experience->total_experience, 0); // Sets any negative numbers to 0.
+        $daily_experience->total_experience += max($daily_experience->total_experience + $request['amount'], 0);
         $daily_experience->save();
 
         // Create an event for audit purposes.
@@ -75,23 +71,21 @@ class ExperienceController extends Controller
         // Return API status.
         $json['status'] = 'success';
         $json['message'] = (!$this->is_production) ? 'Experience successfully added to account! Audit record has been created.': null;
-
         return $json;
     }
 
     private function create_daily_experience_event(Request $request, DailyExperience $daily_experience) {
         $delta = $daily_experience->total_experience - $daily_experience->getOriginal('total_experience');
+
         return DailyExperienceEvent::create([
             'daily_experience_id' => $daily_experience->id,
-            'source' => $source,
+            'source' => $request['source'],
             'delta' => $delta,
         ]);
     }
 
     private function get_daily_experience (Request $request) {
-        $komo_username = $request['komo-username'];
-
-        $daily_experience = DailyExperience::where('komo_username', $komo_username)
+        $daily_experience = DailyExperience::where('komo_username', $request['komo-username'])
             ->whereDate('created_at', Carbon::today())
             ->orderBy('id', 'ASC')
             ->first();
@@ -104,10 +98,8 @@ class ExperienceController extends Controller
     }
 
     private function initialize_daily_experience(Request $request) {
-        $komo_username = $request['komo-username'];
-
         $daily_experience = DailyExperience::create([
-            'komo_username' => $komo_username,
+            'komo_username' => $request['komo-username'],
             'total_experience' => 0,
         ]);
 
