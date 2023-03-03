@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\DB;
 use App\Models\DailyExperience;
 use App\Models\DailyExperienceEvent;
 use App\Models\MmrExperience;
@@ -28,7 +29,7 @@ class ExperienceController extends Controller
     public function api_daily_experience_post(Request $request){
         // Verify connection is from HTTPS, but automatically passes if APP_ENV is local.
         $connection_safe = $this->verify_connection($request);
-        if (!$connection_safe) return response()->json($this->json, 400); // Bad Request
+        if (!$connection_safe) return response()->json($this->json, 403); // Forbidden
 
         // Verify that user exists in the main database.
         $user_exists = $this->verify_user($request);
@@ -36,7 +37,7 @@ class ExperienceController extends Controller
 
         // Throttle attempts to this API by 30 attempts/minute.
         $rate_limited = $this->verify_rate_limit($request);
-        if ($rate_limited) return response()->json($this->json, 400); // Bad Request
+        if ($rate_limited) return response()->json($this->json, 429); // Too Many Requests
 
         // List of API actions.
         if ($request['add-xp'] == 'true') {
@@ -52,12 +53,22 @@ class ExperienceController extends Controller
             'komo-username' => 'required|exists:tb_account,komo_username|max:255',
             'amount' => 'required|numeric|max:2147483647',
             'source' => 'required|exists:tb_api_key,source|max:255',
-            'api_key' => 'required|exists:tb_api_key,api_key|max:255',
+            'api-key' => 'required|exists:tb_api_key,api_key|max:255',
+            'security-hash' => 'required',
         ]);
 
         if ($validator->fails()) {
             $this->json['message'] = (!$this->is_production) ? $validator->errors() : null;
             return response()->json($this->json, 400); // Bad Request
+        }
+
+        // Verify security hash.
+        $local_string = $request['komo-username'] . $request['amount'] . $request['source'] . $request['api-key'];
+        $local_hash = $this->generate_local_hash($local_string, $request['komo-username']);
+
+        if ($local_hash != $request['security-hash']) {
+            $this->json['message'] = (!$this->is_production) ? 'Hash does not match.' : null;
+            return response()->json($this->json, 403); // Forbidden
         }
 
         // Start tallying up the experience gained.
@@ -128,7 +139,7 @@ class ExperienceController extends Controller
         return true;
     }
 
-    private function verify_rate_limit(Request $request, $attempts_per_minute = 1){
+    private function verify_rate_limit(Request $request, $attempts_per_minute = 30){
         $rate_limited = !RateLimiter::attempt(
             'User: ' . $request['komo-username'],
             $attempts_per_minute,
@@ -141,5 +152,24 @@ class ExperienceController extends Controller
         }
 
         return false;
+    }
+
+    private function generate_local_hash($local_string, $komo_username){
+        $cipher_algorithm = 'AES-256-CBC';
+        $passphrase = $this->retrieve_user_salt($komo_username);
+        $options = 0;
+        $iv = env('XP_SECURITY_KEY', null);
+
+        $local_hash = openssl_encrypt($local_string, $cipher_algorithm, $passphrase, $options, $iv);
+        return $local_hash;
+    }
+
+    private function retrieve_user_salt($komo_username){
+        return DB::table('tb_account')
+            ->where('komo_username', $komo_username)
+            ->where('is_verified', 1)
+            ->where('is_suspended', 0)
+            ->first()
+            ->salt;
     }
 }
