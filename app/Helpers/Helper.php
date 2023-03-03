@@ -15,10 +15,4 @@ class Helper
 
         return false;
     }
-
-    public static function is_production() {
-        if (env('APP_ENV') == 'production') return true;
-
-        return false;
-    }
 }

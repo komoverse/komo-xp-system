@@ -20,7 +20,6 @@ class ExperienceController extends Controller
     public function __construct(){
         $this->is_https = Helper::is_https();
         $this->is_local = Helper::is_local();
-        $this->is_production = Helper::is_production();
 
         // Default JSON.
         $this->json = array('status' => 'fail', 'message' => null);
@@ -58,7 +57,7 @@ class ExperienceController extends Controller
         ]);
 
         if ($validator->fails()) {
-            $this->json['message'] = (!$this->is_production) ? $validator->errors() : null;
+            $this->json['message'] = $validator->errors();
             return response()->json($this->json, 400); // Bad Request
         }
 
@@ -67,7 +66,7 @@ class ExperienceController extends Controller
         $local_hash = $this->generate_local_hash($local_string, $request['komo-username']);
 
         if ($local_hash != $request['security-hash']) {
-            $this->json['message'] = (!$this->is_production) ? 'Hash does not match.' : null;
+            $this->json['message'] = 'Hash does not match.';
             return response()->json($this->json, 403); // Forbidden
         }
 
@@ -81,7 +80,7 @@ class ExperienceController extends Controller
 
         // Return API status.
         $this->json['status'] = 'success';
-        $this->json['message'] = (!$this->is_production) ? 'Experience successfully added to account! Audit record has been created.': null;
+        $this->json['message'] = 'Experience successfully added to account! Audit record has been created.';
         return $this->json;
     }
 
@@ -119,7 +118,7 @@ class ExperienceController extends Controller
 
     private function verify_connection(Request $request){
         if ($this->is_https == false && !$this->is_local == true) {
-            $this->json['message'] = (!$this->is_production) ? 'Connection fired from an unsecured connection (use HTTPS).' : null;
+            $this->json['message'] = 'Connection fired from an unsecured connection (use HTTPS).';
             return false;
         }
 
@@ -132,7 +131,7 @@ class ExperienceController extends Controller
         ]);
 
         if ($validator->fails()) {
-            $this->json['message'] = (!$this->is_production) ? $validator->errors() : null;
+            $this->json['message'] = $validator->errors();
             return false;
         }
 
@@ -147,7 +146,7 @@ class ExperienceController extends Controller
         );
 
         if ($rate_limited) {
-            $this->json['message'] = (!$this->is_production) ? 'You are being rate limited.' : null;
+            $this->json['message'] = 'You are being rate limited.';
             return true;
         }
 
