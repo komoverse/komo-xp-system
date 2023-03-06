@@ -21,43 +21,35 @@ class ExperienceController extends Controller
         $this->is_https = Helper::is_https();
         $this->is_local = Helper::is_local();
         $this->json = array('status' => 'fail', 'message' => null);
+    }
 
+    public function api_daily_experience(Request $request){
         // Verify connection is from HTTPS, but automatically passes if APP_ENV is local.
-        $this->connection_safe = $this->verify_connection($request);
-        if (!$this->connection_safe) return response()->json($this->json, 403); // Forbidden
+        $connection_safe = $this->verify_connection($request);
+        if (!$connection_safe) return response()->json($this->json, 403); // Forbidden
 
         // Verify that komo username exists in the main database.
-        $this->user_exists = $this->verify_user($request);
-        if (!$this->user_exists) return response()->json($this->json, 400); // Bad Request
+        $user_exists = $this->verify_user($request);
+        if (!$user_exists) return response()->json($this->json, 400); // Bad Request
 
         // Throttle attempts to this API by 30 attempts/minute.
-        $this->rate_limited = $this->verify_rate_limit($request);
-        if ($this->rate_limited) return response()->json($this->json, 429); // Too Many Requests
-    }
+        $rate_limited = $this->verify_rate_limit($request);
+        if ($rate_limited) return response()->json($this->json, 429); // Too Many Requests
 
-    public function api_daily_experience_post(Request $request){
-        if ($request['add-daily-experience'] == 'true') {
+        // List of APIs.
+        if ($request['add-daily-experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             return $this->add_daily_experience($request);
         }
-    }
 
-    public function api_daily_experience_get(Request $request){
-        if ($request['get-daily-experience'] == 'true') {
+        if ($request['get-daily-experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'GET') {
             $jsonify_data = true;
             return $this->get_daily_experience($request, $jsonify_data);
         }
     }
 
-    public function api_compendium_experience_post(Request $request){
-        if ($request['add-compendium-experience'] == 'true') {
-            return $this->add_compendium_experience($request);
-        }
-    }
-
-    // public function api_compendium_experience_get(Request $request){
-    //     if ($request['get-compendium-experience'] == 'true') {
-    //         $jsonify_data = true;
-    //         return $this->get_compendium_experience($request, $jsonify_data);
+    // public function api_compendium_experience_post(Request $request){
+    //     if ($request['add-compendium-experience'] == 'true') {
+    //         return $this->add_compendium_experience($request);
     //     }
     // }
 
@@ -78,8 +70,8 @@ class ExperienceController extends Controller
         }
 
         // Verify security hash.
-        $local_string = $request['komo-username'] . $request['amount'] . $request['source'] . $request['api-key'];
-        $local_hash = $this->generate_local_hash($local_string, $request['komo-username']);
+        $local_string = $request['account-id'] . $request['amount'] . $request['source'] . $request['api-key'];
+        $local_hash = $this->generate_local_hash($local_string, $request['account-id']);
 
         if ($local_hash != $request['security-hash']) {
             $this->json['message'] = 'Hash does not match.';
@@ -115,8 +107,8 @@ class ExperienceController extends Controller
     //     }
     //
     //     // Verify security hash.
-    //     $local_string = $request['komo-username']; // NOTE: CHANGE THIS!!!
-    //     $local_hash = $this->generate_local_hash($local_string, $request['komo-username']);
+    //     $local_string = $request['account-id']; // NOTE: CHANGE THIS!!!
+    //     $local_hash = $this->generate_local_hash($local_string, $request['account-id']);
     //
     //     if ($local_hash != $request['security-hash']) {
     //         $this->json['message'] = 'Hash does not match.';
@@ -137,8 +129,8 @@ class ExperienceController extends Controller
     //     return response()->json($this->json, 200); // OK
     // }
 
-    private function get_daily_experience (Request $request, $jsonify_data = false) {
-        $daily_experience = DailyExperience::where('komo_username', $request['komo-username'])
+    private function get_daily_experience(Request $request, $jsonify_data = false) {
+        $daily_experience = DailyExperience::where('account_id', $request['account-id'])
             ->whereDate('created_at', Carbon::today())
             ->orderBy('id', 'ASC')
             ->first();
@@ -151,19 +143,19 @@ class ExperienceController extends Controller
         return $daily_experience;
     }
 
-    private function get_compendium_experience (Request $request, $jsonify_data = false) {
-        $compendium_experience = CompendiumExperience::where('komo_username', $request['komo-username'])
-            ->whereDate('created_at', Carbon::today())
-            ->orderBy('id', 'ASC')
-            ->first();
-
-        if ($compendium_experience == null) {
-            $compendium_experience = $this->initialize_compendium_experience($request);
-        }
-
-        if ($jsonify_data) return response()->json($compendium_experience, 200); // OK
-        return $compendium_experience;
-    }
+    // private function get_compendium_experience(Request $request, $jsonify_data = false) {
+    //     $compendium_experience = CompendiumExperience::where('account_id', $request['account-id'])
+    //         ->whereDate('created_at', Carbon::today())
+    //         ->orderBy('id', 'ASC')
+    //         ->first();
+    //
+    //     if ($compendium_experience == null) {
+    //         $compendium_experience = $this->initialize_compendium_experience($request);
+    //     }
+    //
+    //     if ($jsonify_data) return response()->json($compendium_experience, 200); // OK
+    //     return $compendium_experience;
+    // }
 
     /* ----- HELPER FUNCTIONS ----- */
 
@@ -179,22 +171,22 @@ class ExperienceController extends Controller
 
     private function initialize_daily_experience(Request $request) {
         $daily_experience = DailyExperience::create([
-            'komo_username' => $request['komo-username'],
+            'account_id' => $request['account-id'],
             'total_experience' => 0,
         ]);
 
         return $daily_experience;
     }
 
-    private function initialize_compendium_experience(Request $request) {
-        $compendium_experience = CompendiumExperience::create([
-            'season_id' => $request['season-id'],
-            'komo_username' => $request['komo-username'],
-            'total_experience' => 0,
-        ]);
-
-        return $compendium_experience;
-    }
+    // private function initialize_compendium_experience(Request $request) {
+    //     $compendium_experience = CompendiumExperience::create([
+    //         'season_id' => $request['season-id'],
+    //         'account_id' => $request['account-id'],
+    //         'total_experience' => 0,
+    //     ]);
+    //
+    //     return $compendium_experience;
+    // }
 
     private function verify_connection(Request $request){
         if ($this->is_https == false && !$this->is_local == true) {
@@ -207,9 +199,8 @@ class ExperienceController extends Controller
 
     private function verify_user(Request $request){
         $validator = Validator::make($request->all(), [
-            'komo-username' => 'required|exists:tb_account,komo_username|max:255',
+            'account-id' => 'required|exists:tb_account,id|max:255',
         ]);
-
         if ($validator->fails()) {
             $this->json['message'] = $validator->errors();
             return false;
@@ -220,7 +211,7 @@ class ExperienceController extends Controller
 
     private function verify_rate_limit(Request $request, $attempts_per_minute = 30){
         $rate_limited = !RateLimiter::attempt(
-            'User: ' . $request['komo-username'],
+            'User: ' . $request['account-id'],
             $attempts_per_minute,
             function() {}
         );
@@ -233,9 +224,9 @@ class ExperienceController extends Controller
         return false;
     }
 
-    private function generate_local_hash($local_string, $komo_username){
+    private function generate_local_hash($local_string, $account_id){
         $cipher_algorithm = 'AES-256-CBC';
-        $passphrase = $this->retrieve_user_salt($komo_username);
+        $passphrase = $this->retrieve_user_salt($account_id);
         $options = 0;
         $iv = env('XP_SECURITY_KEY', null);
 
@@ -243,12 +234,14 @@ class ExperienceController extends Controller
         return $local_hash;
     }
 
-    private function retrieve_user_salt($komo_username){
-        return DB::table('tb_account')
-            ->where('komo_username', $komo_username)
+    private function retrieve_user_salt($account_id){
+        $account = DB::table('tb_account')
+            ->where('id', $account_id)
             ->where('is_verified', 1)
             ->where('is_suspended', 0)
-            ->first()
-            ->salt;
+            ->first();
+
+        if (!isset($account)) return null;
+        return $account->salt;
     }
 }

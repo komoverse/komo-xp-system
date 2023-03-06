@@ -11,6 +11,6 @@ class CompendiumExperience extends Model
 
     protected $table = 'tb_compendium_experiences';
     protected $guarded = ['id'];
-    protected $fillable = ['komo_username', 'total_experience'];
+    protected $fillable = ['season_id', 'account_id', 'total_experience'];
 
 }

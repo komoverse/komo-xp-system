@@ -11,5 +11,5 @@ class DailyExperience extends Model
 
     protected $table = 'tb_daily_experiences';
     protected $guarded = ['id'];
-    protected $fillable = ['komo_username', 'total_experience'];
+    protected $fillable = ['account_id', 'total_experience'];
 }
