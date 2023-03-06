@@ -17,39 +17,42 @@ use Carbon\Carbon;
 
 class ExperienceController extends Controller
 {
-    public function __construct(){
+    public function __construct(Request $request){
         $this->is_https = Helper::is_https();
         $this->is_local = Helper::is_local();
-
-        // Default JSON.
         $this->json = array('status' => 'fail', 'message' => null);
+
+        // Verify connection is from HTTPS, but automatically passes if APP_ENV is local.
+        $this->connection_safe = $this->verify_connection($request);
+        if (!$this->connection_safe) return response()->json($this->json, 403); // Forbidden
+
+        // Verify that komo username exists in the main database.
+        $this->user_exists = $this->verify_user($request);
+        if (!$this->user_exists) return response()->json($this->json, 400); // Bad Request
+
+        // Throttle attempts to this API by 30 attempts/minute.
+        $this->rate_limited = $this->verify_rate_limit($request);
+        if ($this->rate_limited) return response()->json($this->json, 429); // Too Many Requests
     }
 
     public function api_daily_experience_post(Request $request){
-        // Verify connection is from HTTPS, but automatically passes if APP_ENV is local.
-        $connection_safe = $this->verify_connection($request);
-        if (!$connection_safe) return response()->json($this->json, 403); // Forbidden
-
-        // Verify that user exists in the main database.
-        $user_exists = $this->verify_user($request);
-        if (!$user_exists) return response()->json($this->json, 400); // Bad Request
-
-        // Throttle attempts to this API by 30 attempts/minute.
-        $rate_limited = $this->verify_rate_limit($request);
-        if ($rate_limited) return response()->json($this->json, 429); // Too Many Requests
-
-        // List of API actions.
-        if ($request['add-xp'] == 'true') {
-            return $this->add_xp($request);
+        if ($request['add-daily-experience'] == 'true') {
+            return $this->add_daily_experience($request);
         }
     }
 
-    /* ----- HELPER FUNCTIONS ----- */
+    public function api_daily_experience_get(Request $request){
+        if ($request['get-daily-experience'] == 'true') {
+            $jsonify_data = true;
+            return $this->get_daily_experience($request, $jsonify_data);
+        }
+    }
 
-    private function add_xp(Request $request){
+    /* ----- API FUNCTIONS ----- */
+
+    private function add_daily_experience(Request $request){
         // Validate entry.
         $validator = Validator::make($request->all(), [
-            'komo-username' => 'required|exists:tb_account,komo_username|max:255',
             'amount' => 'required|numeric|max:2147483647',
             'source' => 'required|exists:tb_api_key,source|max:255',
             'api-key' => 'required|exists:tb_api_key,api_key|max:255',
@@ -71,30 +74,20 @@ class ExperienceController extends Controller
         }
 
         // Start tallying up the experience gained.
-        $daily_experience = $this->retrieve_daily_experience($request);
-        $daily_experience->total_experience += max($daily_experience->total_experience + $request['amount'], 0);
-        $daily_experience->save();
+        $daily_experience = $this->get_daily_experience($request);
+        $daily_experience->total_experience = max($daily_experience->total_experience + $request['amount'], 0);
 
-        // Create an event for audit purposes.
+        // Create an event for audit purposes before saving.
         $daily_experience_event = $this->create_daily_experience_event($request, $daily_experience);
+        $daily_experience->save();
 
         // Return API status.
         $this->json['status'] = 'success';
         $this->json['message'] = 'Experience successfully added to account! Audit record has been created.';
-        return $this->json;
+        return response()->json($this->json, 200); // OK
     }
 
-    private function create_daily_experience_event(Request $request, DailyExperience $daily_experience) {
-        $delta = $daily_experience->total_experience - $daily_experience->getOriginal('total_experience');
-
-        return DailyExperienceEvent::create([
-            'daily_experience_id' => $daily_experience->id,
-            'source' => $request['source'],
-            'delta' => $delta,
-        ]);
-    }
-
-    private function retrieve_daily_experience (Request $request) {
+    private function get_daily_experience (Request $request, $jsonify_data = false) {
         $daily_experience = DailyExperience::where('komo_username', $request['komo-username'])
             ->whereDate('created_at', Carbon::today())
             ->orderBy('id', 'ASC')
@@ -104,7 +97,20 @@ class ExperienceController extends Controller
             $daily_experience = $this->initialize_daily_experience($request);
         }
 
+        if ($jsonify_data) return response()->json($daily_experience, 200); // OK
         return $daily_experience;
+    }
+
+    /* ----- HELPER FUNCTIONS ----- */
+
+    private function create_daily_experience_event(Request $request, DailyExperience $daily_experience) {
+        $delta = $daily_experience->total_experience - $daily_experience->getOriginal('total_experience');
+
+        return DailyExperienceEvent::create([
+            'daily_experience_id' => $daily_experience->id,
+            'source' => $request['source'],
+            'delta' => $delta,
+        ]);
     }
 
     private function initialize_daily_experience(Request $request) {
