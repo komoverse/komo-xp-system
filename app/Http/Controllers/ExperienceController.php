@@ -124,12 +124,17 @@ class ExperienceController extends Controller
             return response()->json($this->json, 403); // Forbidden
         }
 
-        // Pegging factor??? How does it work lol
-        $default_factor = 100/1;
+        dd("This works so far, but databases that cover every game's experiences still need to be made. That's my (Karuna's) responsibility.");
 
-        // Start tallying up the experience gained.
-        $compendium_experience = $this->get_compendium_experience($request);
-        $compendium_experience->total_experience = max($compendium_experience->total_experience + $request['game-experience'], 0);
+        // // Calculate current pegging factor.
+        // $average_exp_per_day = 100;
+        // $pegging_factor = $average_exp_per_day / $request['game-experience'];
+        //
+        // dd($pegging_factor);
+        //
+        // // Start tallying up the experience gained.
+        // $compendium_experience = $this->get_compendium_experience($request);
+        // $compendium_experience->total_experience = max($compendium_experience->total_experience + ($request['game-experience'] * $pegging_factor), 0);
 
         // // Create an event for audit purposes before saving.
         // $compendium_experience_event = $this->create_compendium_experience_event($request, $compendium_experience);
@@ -155,19 +160,19 @@ class ExperienceController extends Controller
         return $daily_experience;
     }
 
-    private function get_compendium_experience(Request $request, $jsonify_data = false) {
-        $compendium_experience = CompendiumExperience::where('account_id', $request['account-id'])
-            ->whereDate('created_at', Carbon::today())
-            ->orderBy('id', 'ASC')
-            ->first();
-
-        if ($compendium_experience == null) {
-            $compendium_experience = $this->initialize_compendium_experience($request);
-        }
-
-        if ($jsonify_data) return response()->json($compendium_experience, 200); // OK
-        return $compendium_experience;
-    }
+    // private function get_compendium_experience(Request $request, $jsonify_data = false) {
+    //     $compendium_experience = CompendiumExperience::where('account_id', $request['account-id'])
+    //         ->whereDate('created_at', Carbon::today())
+    //         ->orderBy('id', 'ASC')
+    //         ->first();
+    //
+    //     if ($compendium_experience == null) {
+    //         $compendium_experience = $this->initialize_compendium_experience($request);
+    //     }
+    //
+    //     if ($jsonify_data) return response()->json($compendium_experience, 200); // OK
+    //     return $compendium_experience;
+    // }
 
     /* ----- HELPER FUNCTIONS ----- */
 
@@ -181,15 +186,15 @@ class ExperienceController extends Controller
         ]);
     }
 
-    private function create_compendium_experience_event(Request $request, DailyExperience $compendium_experience) {
-        $delta = $compendium_experience->total_experience - $compendium_experience->getOriginal('total_experience');
-
-        return DailyExperienceEvent::create([
-            'compendium_experience_id' => $compendium_experience->id,
-            'source' => $request['source'],
-            'delta' => $delta,
-        ]);
-    }
+    // private function create_compendium_experience_event(Request $request, CompendiumExperience $compendium_experience) {
+    //     $delta = $compendium_experience->total_experience - $compendium_experience->getOriginal('total_experience');
+    //
+    //     return DailyExperienceEvent::create([
+    //         'compendium_experience_id' => $compendium_experience->id,
+    //         'source' => $request['source'],
+    //         'delta' => $delta,
+    //     ]);
+    // }
 
     private function initialize_daily_experience(Request $request) {
         $daily_experience = DailyExperience::create([
@@ -200,15 +205,15 @@ class ExperienceController extends Controller
         return $daily_experience;
     }
 
-    private function initialize_compendium_experience(Request $request) {
-        $compendium_experience = CompendiumExperience::create([
-            'season_id' => $request['season-id'],
-            'account_id' => $request['account-id'],
-            'total_experience' => 0,
-        ]);
-
-        return $compendium_experience;
-    }
+    // private function initialize_compendium_experience(Request $request) {
+    //     $compendium_experience = CompendiumExperience::create([
+    //         'season_id' => $request['season-id'],
+    //         'account_id' => $request['account-id'],
+    //         'total_experience' => 0,
+    //     ]);
+    //
+    //     return $compendium_experience;
+    // }
 
     private function verify_connection(Request $request){
         if ($this->is_https == false && !$this->is_local == true) {
