@@ -21,20 +21,22 @@ class ExperienceController extends Controller
         $this->is_https = Helper::is_https();
         $this->is_local = Helper::is_local();
         $this->json = array('status' => 'fail', 'message' => null);
+
+        // Verify connection is from HTTPS, but automatically passes if APP_ENV is local.
+        $this->connection_safe = $this->verify_connection($request);
+
+        // Verify that given account id exists in the main database.
+        $this->user_exists = $this->verify_user($request);
+
+        // Throttle attempts to this API by 30 attempts/minute.
+        $this->rate_limited = $this->verify_rate_limit($request);
     }
 
     public function api_daily_experience(Request $request){
-        // Verify connection is from HTTPS, but automatically passes if APP_ENV is local.
-        $connection_safe = $this->verify_connection($request);
-        if (!$connection_safe) return response()->json($this->json, 403); // Forbidden
-
-        // Verify that komo username exists in the main database.
-        $user_exists = $this->verify_user($request);
-        if (!$user_exists) return response()->json($this->json, 400); // Bad Request
-
-        // Throttle attempts to this API by 30 attempts/minute.
-        $rate_limited = $this->verify_rate_limit($request);
-        if ($rate_limited) return response()->json($this->json, 429); // Too Many Requests
+        // Guard statements.
+        if (!$this->connection_safe) return response()->json($this->json, 403); // Forbidden
+        if (!$this->user_exists) return response()->json($this->json, 400); // Bad Request
+        if ($this->rate_limited) return response()->json($this->json, 429); // Too Many Requests
 
         // List of APIs.
         if ($request['add-daily-experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -47,11 +49,17 @@ class ExperienceController extends Controller
         }
     }
 
-    // public function api_compendium_experience_post(Request $request){
-    //     if ($request['add-compendium-experience'] == 'true') {
-    //         return $this->add_compendium_experience($request);
-    //     }
-    // }
+    public function api_compendium_experience(Request $request){
+        // Guard statements.
+        if (!$this->connection_safe) return response()->json($this->json, 403); // Forbidden
+        if (!$this->user_exists) return response()->json($this->json, 400); // Bad Request
+        if ($this->rate_limited) return response()->json($this->json, 429); // Too Many Requests
+
+        // List of APIs.
+        if ($request['add-compendium-experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+            return $this->add_compendium_experience($request);
+        }
+    }
 
     /* ----- API FUNCTIONS ----- */
 
