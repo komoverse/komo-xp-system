@@ -48,6 +48,19 @@ class ExperienceController extends Controller
         }
     }
 
+    public function api_compendium_experience_post(Request $request){
+        if ($request['add-compendium-experience'] == 'true') {
+            return $this->add_compendium_experience($request);
+        }
+    }
+
+    // public function api_compendium_experience_get(Request $request){
+    //     if ($request['get-compendium-experience'] == 'true') {
+    //         $jsonify_data = true;
+    //         return $this->get_compendium_experience($request, $jsonify_data);
+    //     }
+    // }
+
     /* ----- API FUNCTIONS ----- */
 
     private function add_daily_experience(Request $request){
@@ -87,6 +100,43 @@ class ExperienceController extends Controller
         return response()->json($this->json, 200); // OK
     }
 
+    // private function add_compendium_experience(Request $request){
+    //     // Validate entry.
+    //     $validator = Validator::make($request->all(), [ // NOTE: CHANGE THIS!!!
+    //         // 'amount' => 'required|numeric|max:2147483647',
+    //         // 'source' => 'required|exists:tb_api_key,source|max:255',
+    //         // 'api-key' => 'required|exists:tb_api_key,api_key|max:255',
+    //         'security-hash' => 'required',
+    //     ]);
+    //
+    //     if ($validator->fails()) {
+    //         $this->json['message'] = $validator->errors();
+    //         return response()->json($this->json, 400); // Bad Request
+    //     }
+    //
+    //     // Verify security hash.
+    //     $local_string = $request['komo-username']; // NOTE: CHANGE THIS!!!
+    //     $local_hash = $this->generate_local_hash($local_string, $request['komo-username']);
+    //
+    //     if ($local_hash != $request['security-hash']) {
+    //         $this->json['message'] = 'Hash does not match.';
+    //         return response()->json($this->json, 403); // Forbidden
+    //     }
+    //
+    //     // Start tallying up the experience gained.
+    //     $compendium_experience = $this->get_compendium_experience($request);
+    //     $compendium_experience->total_experience = max($compendium_experience->total_experience + $request['amount'], 0);
+    //
+    //     // Create an event for audit purposes before saving.
+    //     $compendium_experience_event = $this->create_compendium_experience_event($request, $compendium_experience);
+    //     $compendium_experience->save();
+    //
+    //     // Return API status.
+    //     $this->json['status'] = 'success';
+    //     $this->json['message'] = 'Experience successfully added to account! Audit record has been created.';
+    //     return response()->json($this->json, 200); // OK
+    // }
+
     private function get_daily_experience (Request $request, $jsonify_data = false) {
         $daily_experience = DailyExperience::where('komo_username', $request['komo-username'])
             ->whereDate('created_at', Carbon::today())
@@ -99,6 +149,20 @@ class ExperienceController extends Controller
 
         if ($jsonify_data) return response()->json($daily_experience, 200); // OK
         return $daily_experience;
+    }
+
+    private function get_compendium_experience (Request $request, $jsonify_data = false) {
+        $compendium_experience = CompendiumExperience::where('komo_username', $request['komo-username'])
+            ->whereDate('created_at', Carbon::today())
+            ->orderBy('id', 'ASC')
+            ->first();
+
+        if ($compendium_experience == null) {
+            $compendium_experience = $this->initialize_compendium_experience($request);
+        }
+
+        if ($jsonify_data) return response()->json($compendium_experience, 200); // OK
+        return $compendium_experience;
     }
 
     /* ----- HELPER FUNCTIONS ----- */
@@ -120,6 +184,16 @@ class ExperienceController extends Controller
         ]);
 
         return $daily_experience;
+    }
+
+    private function initialize_compendium_experience(Request $request) {
+        $compendium_experience = CompendiumExperience::create([
+            'season_id' => $request['season-id'],
+            'komo_username' => $request['komo-username'],
+            'total_experience' => 0,
+        ]);
+
+        return $compendium_experience;
     }
 
     private function verify_connection(Request $request){
