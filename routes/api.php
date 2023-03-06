@@ -14,5 +14,5 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::post('/daily-experience', [App\Http\Controllers\ExperienceController::class, 'api_daily_experience_post']); 
-// Route::get('/daily-experience', [App\Http\Controllers\ExperienceController::class, 'api_daily_experience_get']);
+Route::get('/daily-experience', [App\Http\Controllers\ExperienceController::class, 'api_daily_experience_get']);
+Route::post('/daily-experience', [App\Http\Controllers\ExperienceController::class, 'api_daily_experience_post']);
