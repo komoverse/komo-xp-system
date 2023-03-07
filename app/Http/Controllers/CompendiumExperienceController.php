@@ -6,18 +6,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\DB;
-use App\Models\DailyExperience;
-use App\Models\DailyExperienceEvent;
-use App\Models\MmrExperience;
-use App\Models\MmrExperienceEvent;
 use App\Models\CompendiumExperience;
 use App\Models\CompendiumExperienceEvent;
-use App\Models\RawExperienceRecord;
+use App\Models\GameExperienceMultiplier;
+// use App\Models\RawExperienceRecord;
 use App\Models\Season;
 use App\Helpers\Helper;
 use Carbon\Carbon;
 
-class ExperienceController extends Controller
+class CompendiumExperienceController extends Controller
 {
     public function __construct(Request $request){
         $this->is_https = Helper::is_https();
@@ -34,23 +31,6 @@ class ExperienceController extends Controller
         $this->rate_limited = $this->verify_rate_limit($request);
     }
 
-    public function api_daily_experience(Request $request){
-        // Guard statements.
-        if (!$this->connection_safe) return response()->json($this->json, 403); // Forbidden
-        if (!$this->user_exists) return response()->json($this->json, 400); // Bad Request
-        if ($this->rate_limited) return response()->json($this->json, 429); // Too Many Requests
-
-        // List of APIs.
-        if ($request['add-daily-experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-            return $this->add_daily_experience($request);
-        }
-
-        if ($request['get-daily-experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'GET') {
-            $jsonify_data = true;
-            return $this->get_daily_experience($request, $jsonify_data);
-        }
-    }
-
     public function api_compendium_experience(Request $request){
         // Guard statements.
         if (!$this->connection_safe) return response()->json($this->json, 403); // Forbidden
@@ -64,43 +44,6 @@ class ExperienceController extends Controller
     }
 
     /* ----- API FUNCTIONS ----- */
-
-    private function add_daily_experience(Request $request){
-        // Validate entry.
-        $validator = Validator::make($request->all(), [
-            'amount' => 'required|numeric|max:2147483647',
-            'source' => 'required|max:255',
-            'api-key' => 'required|exists:tb_api_key,api_key|max:255',
-            'security-hash' => 'required',
-        ]);
-
-        if ($validator->fails()) {
-            $this->json['message'] = $validator->errors();
-            return response()->json($this->json, 400); // Bad Request
-        }
-
-        // Verify security hash.
-        $local_string = $request['account-id'] . $request['amount'] . $request['source'] . $request['api-key'];
-        $local_hash = $this->generate_local_hash($local_string, $request['account-id']);
-
-        if ($local_hash != $request['security-hash']) {
-            $this->json['message'] = 'Hash does not match.';
-            return response()->json($this->json, 403); // Forbidden
-        }
-
-        // Start tallying up the experience gained.
-        $daily_experience = $this->get_daily_experience($request);
-        $daily_experience->total_experience = max($daily_experience->total_experience + $request['amount'], 0);
-
-        // Create an event for audit purposes before saving.
-        $daily_experience_event = $this->create_daily_experience_event($request, $daily_experience);
-        $daily_experience->save();
-
-        // Return API status.
-        $this->json['status'] = 'success';
-        $this->json['message'] = 'Experience successfully added to account! Audit record has been created.';
-        return response()->json($this->json, 200); // OK
-    }
 
     private function add_compendium_experience(Request $request){
         // Validate entry.
@@ -125,6 +68,16 @@ class ExperienceController extends Controller
             $this->json['message'] = 'Hash does not match.';
             return response()->json($this->json, 403); // Forbidden
         }
+
+        // Check if game has any multipliers (default to 0x if there is no multiplier).
+        $game_multipliers = GameExperienceMultiplier::where('api_key', $request['api-key'])->first();
+        $compendium_xp_multiplier = 0.0;
+        if (isset($game_multipliers)) {
+            $compendium_xp_multiplier = $game_multipliers->compendium_multiplier;
+        }
+
+        dd($compendium_xp_multiplier);
+        // if (isset($compendium_xp_multiplier)) $compendium_xp_multipli
 
         // Find the compendium multipliers of the respective game.
         // $game_multiplier =
@@ -163,20 +116,6 @@ class ExperienceController extends Controller
         // return response()->json($this->json, 200); // OK
     }
 
-    private function get_daily_experience(Request $request, $jsonify_data = false) {
-        $daily_experience = DailyExperience::where('account_id', $request['account-id'])
-            ->whereDate('created_at', Carbon::today())
-            ->orderBy('id', 'ASC')
-            ->first();
-
-        if ($daily_experience == null) {
-            $daily_experience = $this->initialize_daily_experience($request);
-        }
-
-        if ($jsonify_data) return response()->json($daily_experience, 200); // OK
-        return $daily_experience;
-    }
-
     // private function get_compendium_experience(Request $request, $jsonify_data = false) {
     //     $compendium_experience = CompendiumExperience::where('account_id', $request['account-id'])
     //         ->whereDate('created_at', Carbon::today())
@@ -193,16 +132,6 @@ class ExperienceController extends Controller
 
     /* ----- HELPER FUNCTIONS ----- */
 
-    private function create_daily_experience_event(Request $request, DailyExperience $daily_experience) {
-        $delta = $daily_experience->total_experience - $daily_experience->getOriginal('total_experience');
-
-        return DailyExperienceEvent::create([
-            'daily_experience_id' => $daily_experience->id,
-            'source' => $request['source'],
-            'delta' => $delta,
-        ]);
-    }
-
     // private function create_compendium_experience_event(Request $request, CompendiumExperience $compendium_experience) {
     //     $delta = $compendium_experience->total_experience - $compendium_experience->getOriginal('total_experience');
     //
@@ -212,15 +141,6 @@ class ExperienceController extends Controller
     //         'delta' => $delta,
     //     ]);
     // }
-
-    private function initialize_daily_experience(Request $request) {
-        $daily_experience = DailyExperience::create([
-            'account_id' => $request['account-id'],
-            'total_experience' => 0,
-        ]);
-
-        return $daily_experience;
-    }
 
     // private function initialize_compendium_experience(Request $request) {
     //     $compendium_experience = CompendiumExperience::create([
