@@ -124,9 +124,24 @@ class ExperienceController extends Controller
             return response()->json($this->json, 403); // Forbidden
         }
 
-        dd("This works so far, but databases that cover every game's experiences still need to be made. That's my (Karuna's) responsibility.");
+        // Check if .env has KOMOCHESS_API_KEY.
+        $komochess_api_key = env('KOMOCHESS_API_KEY');
+        if (!$komochess_api_key) {
+            $this->json['message'] = 'It\'s not you, it\'s us. We forgot to set our API key.';
+            $this->json['data'] = $request->all();
+            return response()->json($this->json, 500); // Internal Server Error
+        }
 
-        // // Calculate current pegging factor.
+        // Check if submitted game and name is corre
+        $average_experience_per_player_per_day = ;
+
+        //
+        //
+        // dd("This works so far, but databases that cover every game's experiences still need to be made. That's my (Karuna's) responsibility.");
+        //
+        // // If the experience is specifically sourced from Komochess, add the compendium XP without further calculations.
+        // $average_experience_per_player_per_day = env('KOMOCHESS_DEFAULT_AVERAGE_XP', 100);
+        //
         // $average_exp_per_day = 100;
         // $pegging_factor = $average_exp_per_day / $request['game-experience'];
         //
