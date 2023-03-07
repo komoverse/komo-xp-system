@@ -41,6 +41,11 @@ class CompendiumExperienceController extends Controller
         if ($request['add-compendium-experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             return $this->add_compendium_experience($request);
         }
+
+        if ($request['get-compendium-experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+            $jsonify_data = true;
+            return $this->get_compendium_experience($request, $jsonify_data);
+        }
     }
 
     /* ----- API FUNCTIONS ----- */
@@ -48,7 +53,6 @@ class CompendiumExperienceController extends Controller
     private function add_compendium_experience(Request $request){
         // Validate entry.
         $validator = Validator::make($request->all(), [
-            'season-id' => 'required|exists:tb_seasons,id',
             'source' => 'required|max:255',
             'api-key' => 'required|exists:tb_api_key,api_key|max:255',
             'game-experience' => 'required|numeric|max:2147483647',
@@ -61,7 +65,7 @@ class CompendiumExperienceController extends Controller
         }
 
         // Verify security hash.
-        $local_string = $request['account-id'] . $request['season-id'] . $request['source'] . $request['api-key'] . $request['game-experience'];
+        $local_string = $request['account-id'] . $request['source'] . $request['api-key'] . $request['game-experience'];
         $local_hash = $this->generate_local_hash($local_string, $request['account-id']);
 
         if ($local_hash != $request['security-hash']) {
@@ -76,81 +80,75 @@ class CompendiumExperienceController extends Controller
             $compendium_xp_multiplier = $game_multipliers->compendium_multiplier;
         }
 
-        dd($compendium_xp_multiplier);
-        // if (isset($compendium_xp_multiplier)) $compendium_xp_multipli
+        // Check if a season is currently running. If not, return an acknowledged status.
+        $compendium_experience = $this->get_compendium_experience($request);
+        if ($compendium_experience == false) {
+            $this->json['status'] = 'acknowledged';
+            $this->json['message'] = 'Request acknowledged, but there is no running season at the moment. No data has been added to the database.';
+            return response()->json($this->json, 200); // OK
+        }
 
-        // Find the compendium multipliers of the respective game.
-        // $game_multiplier =
+        // Tally up the compendium experience with the returned game multipliers.
+        $compendium_experience->total_experience += $compendium_xp_multiplier * $request['game-experience'];
+        $compendium_experience_event = $this->create_compendium_experience_event($request, $compendium_experience);
+        $compendium_experience->save();
 
-        // // Check if .env has KOMOCHESS_API_KEY.
-        // $komochess_api_key = env('KOMOCHESS_API_KEY');
-        // if (!$komochess_api_key) {
-        //     $this->json['message'] = 'It\'s not you, it\'s us. We forgot to set our API key.';
-        //     $this->json['data'] = $request->all();
-        //     return response()->json($this->json, 500); // Internal Server Error
-        // }
-
-        //
-        //
-        // dd("This works so far, but databases that cover every game's experiences still need to be made. That's my (Karuna's) responsibility.");
-        //
-        // // If the experience is specifically sourced from Komochess, add the compendium XP without further calculations.
-        // $average_experience_per_player_per_day = env('KOMOCHESS_DEFAULT_AVERAGE_XP', 100);
-        //
-        // $average_exp_per_day = 100;
-        // $pegging_factor = $average_exp_per_day / $request['game-experience'];
-        //
-        // dd($pegging_factor);
-        //
-        // // Start tallying up the experience gained.
-        // $compendium_experience = $this->get_compendium_experience($request);
-        // $compendium_experience->total_experience = max($compendium_experience->total_experience + ($request['game-experience'] * $pegging_factor), 0);
-
-        // // Create an event for audit purposes before saving.
-        // $compendium_experience_event = $this->create_compendium_experience_event($request, $compendium_experience);
-        // $compendium_experience->save();
-        //
-        // // Return API status.
-        // $this->json['status'] = 'success';
-        // $this->json['message'] = 'Experience successfully added to account! Audit record has been created.';
-        // return response()->json($this->json, 200); // OK
+        // Return API status.
+        $this->json['status'] = 'success';
+        $this->json['message'] = 'Compendium Experience successfully added to account! Audit record has been created.';
+        $this->json['data'] = $compendium_experience;
+        return response()->json($this->json, 200); // OK
     }
 
-    // private function get_compendium_experience(Request $request, $jsonify_data = false) {
-    //     $compendium_experience = CompendiumExperience::where('account_id', $request['account-id'])
-    //         ->whereDate('created_at', Carbon::today())
-    //         ->orderBy('id', 'ASC')
-    //         ->first();
-    //
-    //     if ($compendium_experience == null) {
-    //         $compendium_experience = $this->initialize_compendium_experience($request);
-    //     }
-    //
-    //     if ($jsonify_data) return response()->json($compendium_experience, 200); // OK
-    //     return $compendium_experience;
-    // }
+    private function get_compendium_experience(Request $request, $jsonify_data = false) {
+        $current_season = Season::where('start_date', '<=', Carbon::now())
+            ->where('end_date', '>=', Carbon::now())
+            ->orderBy('id', 'ASC')
+            ->first();
+
+        if ($jsonify_data == true && $current_season == null){
+            $this->json['status'] = 'acknowledged';
+            $this->json['message'] = 'Request acknowledged, but there is currently no running seasons at the moment.';
+            return response()->json($this->json, 200); // OK
+        }
+
+        if ($jsonify_data == false && $current_season == null){
+            return false;
+        }
+
+        $compendium_experience = CompendiumExperience::where('account_id', $request['account-id'])
+            ->orderBy('id', 'ASC')
+            ->first();
+
+        if ($compendium_experience == null) {
+            $compendium_experience = $this->initialize_compendium_experience($request, $current_season->id);
+        }
+
+        if ($jsonify_data) return response()->json($compendium_experience, 200); // OK
+        return $compendium_experience;
+    }
 
     /* ----- HELPER FUNCTIONS ----- */
 
-    // private function create_compendium_experience_event(Request $request, CompendiumExperience $compendium_experience) {
-    //     $delta = $compendium_experience->total_experience - $compendium_experience->getOriginal('total_experience');
-    //
-    //     return DailyExperienceEvent::create([
-    //         'compendium_experience_id' => $compendium_experience->id,
-    //         'source' => $request['source'],
-    //         'delta' => $delta,
-    //     ]);
-    // }
+    private function create_compendium_experience_event(Request $request, CompendiumExperience $compendium_experience) {
+        $delta = $compendium_experience->total_experience - $compendium_experience->getOriginal('total_experience');
 
-    // private function initialize_compendium_experience(Request $request) {
-    //     $compendium_experience = CompendiumExperience::create([
-    //         'season_id' => $request['season-id'],
-    //         'account_id' => $request['account-id'],
-    //         'total_experience' => 0,
-    //     ]);
-    //
-    //     return $compendium_experience;
-    // }
+        return CompendiumExperienceEvent::create([
+            'compendium_experience_id' => $compendium_experience->id,
+            'source' => $request['source'],
+            'delta' => $delta,
+        ]);
+    }
+
+    private function initialize_compendium_experience(Request $request, $season_id) {
+        $compendium_experience = CompendiumExperience::create([
+            'season_id' => $current_season->id,
+            'account_id' => $request['account-id'],
+            'total_experience' => 0,
+        ]);
+
+        return $compendium_experience;
+    }
 
     private function verify_connection(Request $request){
         if ($this->is_https == false && !$this->is_local == true) {

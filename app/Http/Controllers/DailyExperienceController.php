@@ -80,33 +80,9 @@ class DailyExperienceController extends Controller
 
         // Return API status.
         $this->json['status'] = 'success';
-        $this->json['message'] = 'Experience successfully added to account! Audit record has been created.';
+        $this->json['message'] = 'Daily Experience successfully added to account! Audit record has been created.';
+        $this->json['data'] = $daily_experience;
         return response()->json($this->json, 200); // OK
-    }
-
-    private function add_compendium_experience(Request $request){
-        // Validate entry.
-        $validator = Validator::make($request->all(), [
-            'season-id' => 'required|exists:tb_seasons,id',
-            'source' => 'required|max:255',
-            'api-key' => 'required|exists:tb_api_key,api_key|max:255',
-            'game-experience' => 'required|numeric|max:2147483647',
-            'security-hash' => 'required',
-        ]);
-
-        if ($validator->fails()) {
-            $this->json['message'] = $validator->errors();
-            return response()->json($this->json, 400); // Bad Request
-        }
-
-        // Verify security hash.
-        $local_string = $request['account-id'] . $request['season-id'] . $request['source'] . $request['api-key'] . $request['game-experience'];
-        $local_hash = $this->generate_local_hash($local_string, $request['account-id']);
-
-        if ($local_hash != $request['security-hash']) {
-            $this->json['message'] = 'Hash does not match.';
-            return response()->json($this->json, 403); // Forbidden
-        }
     }
 
     private function get_daily_experience(Request $request,$jsonify_data = false) {
