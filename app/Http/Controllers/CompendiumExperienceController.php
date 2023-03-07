@@ -101,11 +101,13 @@ class CompendiumExperienceController extends Controller
     }
 
     private function get_compendium_experience(Request $request, $jsonify_data = false) {
+        // Get current season.
         $current_season = Season::where('start_date', '<=', Carbon::now())
             ->where('end_date', '>=', Carbon::now())
             ->orderBy('id', 'ASC')
             ->first();
 
+        // If there is no season running currently, return a response/false.
         if ($jsonify_data == true && $current_season == null){
             $this->json['status'] = 'acknowledged';
             $this->json['message'] = 'Request acknowledged, but there is currently no running seasons at the moment.';
@@ -116,14 +118,18 @@ class CompendiumExperienceController extends Controller
             return false;
         }
 
+        // Check for compendium experience based on current season ID.
         $compendium_experience = CompendiumExperience::where('account_id', $request['account-id'])
+            ->where('season_id', $current_season->id)
             ->orderBy('id', 'ASC')
             ->first();
 
+        // If no compendium experience found, initialize one.
         if ($compendium_experience == null) {
             $compendium_experience = $this->initialize_compendium_experience($request, $current_season->id);
         }
 
+        // Return data.
         if ($jsonify_data) return response()->json($compendium_experience, 200); // OK
         return $compendium_experience;
     }
