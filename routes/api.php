@@ -14,8 +14,8 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/daily-experience', [App\Http\Controllers\ExperienceController::class, 'api_daily_experience']);
-Route::post('/daily-experience', [App\Http\Controllers\ExperienceController::class, 'api_daily_experience']);
+Route::get('/daily-experience', [App\Http\Controllers\DailyExperienceController::class, 'api_daily_experience']);
+Route::post('/daily-experience', [App\Http\Controllers\DailyExperienceController::class, 'api_daily_experience']);
 
-Route::get('/compendium-experience', [App\Http\Controllers\ExperienceController::class, 'api_compendium_experience']);
-Route::post('/compendium-experience', [App\Http\Controllers\ExperienceController::class, 'api_compendium_experience']);
+Route::get('/compendium-experience', [App\Http\Controllers\CompendiumExperienceController::class, 'api_compendium_experience']);
+Route::post('/compendium-experience', [App\Http\Controllers\CompendiumExperienceController::class, 'api_compendium_experience']);

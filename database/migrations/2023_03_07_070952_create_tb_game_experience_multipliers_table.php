@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('tb_game_experience_multipliers', function (Blueprint $table) {
             $table->id();
-            $table->string('game_id');
+            $table->string('api_key');
             $table->float('daily_multiplier')->default(1);
             $table->float('mmr_multiplier')->default(1);
             $table->float('compendium_multiplier')->default(1);

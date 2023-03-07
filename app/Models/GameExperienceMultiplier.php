@@ -11,6 +11,6 @@ class GameExperienceMultiplier extends Model
 
     protected $table = 'tb_game_experience_multipliers';
     protected $guarded = ['id'];
-    protected $fillable = ['game_id', 'daily_multiplier', 'mmr_multiplier', 'compendium_multiplier'];
+    protected $fillable = ['api_key', 'daily_multiplier', 'mmr_multiplier', 'compendium_multiplier'];
 
 }
