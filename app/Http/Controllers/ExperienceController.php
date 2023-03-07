@@ -12,6 +12,8 @@ use App\Models\MmrExperience;
 use App\Models\MmrExperienceEvent;
 use App\Models\CompendiumExperience;
 use App\Models\CompendiumExperienceEvent;
+use App\Models\RawExperienceRecord;
+use App\Models\Season;
 use App\Helpers\Helper;
 use Carbon\Carbon;
 
@@ -67,7 +69,7 @@ class ExperienceController extends Controller
         // Validate entry.
         $validator = Validator::make($request->all(), [
             'amount' => 'required|numeric|max:2147483647',
-            'source' => 'required|exists:tb_api_key,source|max:255',
+            'source' => 'required|max:255',
             'api-key' => 'required|exists:tb_api_key,api_key|max:255',
             'security-hash' => 'required',
         ]);
@@ -104,7 +106,7 @@ class ExperienceController extends Controller
         // Validate entry.
         $validator = Validator::make($request->all(), [
             'season-id' => 'required|exists:tb_seasons,id',
-            'source' => 'required|exists:tb_api_key,source|max:255',
+            'source' => 'required|max:255',
             'api-key' => 'required|exists:tb_api_key,api_key|max:255',
             'game-experience' => 'required|numeric|max:2147483647',
             'security-hash' => 'required',
@@ -124,16 +126,13 @@ class ExperienceController extends Controller
             return response()->json($this->json, 403); // Forbidden
         }
 
-        // Check if .env has KOMOCHESS_API_KEY.
-        $komochess_api_key = env('KOMOCHESS_API_KEY');
-        if (!$komochess_api_key) {
-            $this->json['message'] = 'It\'s not you, it\'s us. We forgot to set our API key.';
-            $this->json['data'] = $request->all();
-            return response()->json($this->json, 500); // Internal Server Error
-        }
-
-        // Check if submitted game and name is corre
-        $average_experience_per_player_per_day = ;
+        // // Check if .env has KOMOCHESS_API_KEY.
+        // $komochess_api_key = env('KOMOCHESS_API_KEY');
+        // if (!$komochess_api_key) {
+        //     $this->json['message'] = 'It\'s not you, it\'s us. We forgot to set our API key.';
+        //     $this->json['data'] = $request->all();
+        //     return response()->json($this->json, 500); // Internal Server Error
+        // }
 
         //
         //
