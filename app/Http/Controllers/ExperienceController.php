@@ -126,6 +126,9 @@ class ExperienceController extends Controller
             return response()->json($this->json, 403); // Forbidden
         }
 
+        // Find the compendium multipliers of the respective game.
+        // $game_multiplier = 
+
         // // Check if .env has KOMOCHESS_API_KEY.
         // $komochess_api_key = env('KOMOCHESS_API_KEY');
         // if (!$komochess_api_key) {
