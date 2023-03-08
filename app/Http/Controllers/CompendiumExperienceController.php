@@ -4,8 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\DB;
 use App\Models\CompendiumExperience;
 use App\Models\CompendiumExperienceEvent;
 use App\Models\CompendiumSeason;
