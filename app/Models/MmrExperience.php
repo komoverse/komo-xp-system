@@ -11,5 +11,5 @@ class MmrExperience extends Model
 
     protected $table = 'xp_mmr_experiences';
     protected $guarded = ['id'];
-    protected $fillable = ['account_id', 'total_experience'];
+    protected $fillable = ['account_id', 'api_key', 'total_experience'];
 }

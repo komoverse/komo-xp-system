@@ -11,5 +11,5 @@ class MmrExperienceEvent extends Model
 
     protected $table = 'xp_mmr_experience_events';
     protected $guarded = ['id'];
-    protected $fillable = ['mmr_experience_id', 'api_key', 'delta'];
+    protected $fillable = ['mmr_experience_id', 'delta'];
 }

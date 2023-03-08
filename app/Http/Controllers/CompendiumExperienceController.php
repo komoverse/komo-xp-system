@@ -133,7 +133,7 @@ class CompendiumExperienceController extends Controller
             ->orderBy('id', 'ASC')
             ->first();
 
-        // If no compendium experience found, initialize one.
+        // If no compendium experience found, initialize one and create an audit.
         if ($compendium_experience == null) {
             $compendium_experience = $this->initialize_compendium_experience($request, $current_season->id);
         }
