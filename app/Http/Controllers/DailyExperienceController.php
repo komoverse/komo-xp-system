@@ -62,7 +62,7 @@ class DailyExperienceController extends Controller
 
         // Verify security hash.
         $local_string = $request['account-id'] . $request['amount'] . $request['api-key'];
-        $local_hash = $this->generate_local_hash($local_string, $request['account-id']);
+        $local_hash = Helper::generate_local_hash($local_string, $request['account-id']);
 
         if ($local_hash != $request['security-hash']) {
             $this->json['message'] = 'Hash does not match.';
@@ -153,26 +153,5 @@ class DailyExperienceController extends Controller
         }
 
         return false;
-    }
-
-    private function generate_local_hash($local_string, $account_id){
-        $cipher_algorithm = 'AES-256-CBC';
-        $passphrase = $this->retrieve_user_salt($account_id);
-        $options = 0;
-        $iv = env('XP_SECURITY_KEY', null);
-
-        $local_hash = openssl_encrypt($local_string, $cipher_algorithm, $passphrase, $options, $iv);
-        return $local_hash;
-    }
-
-    private function retrieve_user_salt($account_id){
-        $account = DB::table('tb_account')
-            ->where('id', $account_id)
-            ->where('is_verified', 1)
-            ->where('is_suspended', 0)
-            ->first();
-
-        if (!isset($account)) return null;
-        return $account->salt;
     }
 }
