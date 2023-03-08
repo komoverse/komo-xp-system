@@ -19,22 +19,24 @@ class CompendiumExperienceController extends Controller
         $this->is_https = Helper::is_https();
         $this->is_local = Helper::is_local();
         $this->json = array('status' => 'fail', 'message' => null);
-
-        // Verify connection is from HTTPS, but automatically passes if APP_ENV is local.
-        $this->connection_safe = $this->verify_connection($request);
-
-        // Verify that given account id exists in the main database.
-        $this->user_exists = $this->verify_user($request);
-
-        // Throttle attempts to this API by 30 attempts/minute.
-        $this->rate_limited = $this->verify_rate_limit($request);
     }
 
     public function api_compendium_experience(Request $request){
         // Guard statements.
-        if (!$this->connection_safe) return response()->json($this->json, 403); // Forbidden
-        if (!$this->user_exists) return response()->json($this->json, 400); // Bad Request
-        if ($this->rate_limited) return response()->json($this->json, 429); // Too Many Requests
+        if (!Helper::verify_connection($request)) {
+            $this->json['message'] = 'Connection fired from an unsecured connection (use HTTPS).';
+            return response()->json($this->json, 403); // Forbidden
+        }
+
+        if (!Helper::verify_user($request)) {
+            $this->json['message'] = 'Invalid account ID. This either means that the user does not exist, registered but not verified, or is suspended.';
+            return response()->json($this->json, 400); // Bad Request
+        }
+
+        if (Helper::verify_rate_limit($request)) {
+            $this->json['message'] = 'You are being rate limited.';
+            return response()->json($this->json, 429); // Too Many Requests
+        }
 
         // List of APIs.
         if ($request['add-compendium-experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -52,6 +54,7 @@ class CompendiumExperienceController extends Controller
     private function add_compendium_experience(Request $request){
         // Validate entry.
         $validator = Validator::make($request->all(), [
+            'account-id' => 'required|exists:tb_account,id|max:255',
             'api-key' => 'required|exists:tb_api_key,api_key|max:255',
             'game-experience' => 'required|numeric|max:2147483647',
             'security-hash' => 'required',
@@ -99,6 +102,16 @@ class CompendiumExperienceController extends Controller
     }
 
     private function get_compendium_experience(Request $request, $jsonify_data = false) {
+        // Validate entry.
+        $validator = Validator::make($request->all(), [
+            'account-id' => 'required|exists:tb_account,id|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            $this->json['message'] = $validator->errors();
+            return response()->json($this->json, 400); // Bad Request
+        }
+
         // Get current season.
         $current_season = CompendiumSeason::where('start_date', '<=', Carbon::now())
             ->where('end_date', '>=', Carbon::now())
@@ -152,41 +165,5 @@ class CompendiumExperienceController extends Controller
         ]);
 
         return $compendium_experience;
-    }
-
-    private function verify_connection(Request $request){
-        if ($this->is_https == false && !$this->is_local == true) {
-            $this->json['message'] = 'Connection fired from an unsecured connection (use HTTPS).';
-            return false;
-        }
-
-        return true;
-    }
-
-    private function verify_user(Request $request){
-        $validator = Validator::make($request->all(), [
-            'account-id' => 'required|exists:tb_account,id|max:255',
-        ]);
-        if ($validator->fails()) {
-            $this->json['message'] = $validator->errors();
-            return false;
-        }
-
-        return true;
-    }
-
-    private function verify_rate_limit(Request $request, $attempts_per_minute = 30){
-        $rate_limited = !RateLimiter::attempt(
-            'User: ' . $request['account-id'],
-            $attempts_per_minute,
-            function() {}
-        );
-
-        if ($rate_limited) {
-            $this->json['message'] = 'You are being rate limited.';
-            return true;
-        }
-
-        return false;
     }
 }

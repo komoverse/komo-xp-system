@@ -2,6 +2,9 @@
 
 namespace App\Helpers;
 
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\DB;
 
 class Helper
@@ -14,7 +17,33 @@ class Helper
 
     public static function is_local() {
         if (env('APP_ENV') == 'local') return true;
+        return false;
+    }
 
+    public static function verify_connection(Request $request){
+        if (Helper::is_https() == false && !Helper::is_local() == true) return false;
+        return true;
+    }
+
+    public static function verify_user(Request $request){
+        $user = DB::table('tb_account')
+            ->where('id', $request['account-id'])
+            ->where('is_verified', 1)
+            ->where('is_suspended', 0)
+            ->first();
+
+        if (!$user) return false;
+        return true;
+    }
+
+    public static function verify_rate_limit(Request $request, $attempts_per_minute = 30){
+        $rate_limited = !RateLimiter::attempt(
+            'User: ' . $request['account-id'],
+            $attempts_per_minute,
+            function() {}
+        );
+
+        if ($rate_limited) return true;
         return false;
     }
 
