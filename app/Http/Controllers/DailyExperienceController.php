@@ -51,7 +51,6 @@ class DailyExperienceController extends Controller
         // Validate entry.
         $validator = Validator::make($request->all(), [
             'amount' => 'required|numeric|max:2147483647',
-            'source' => 'required|max:255',
             'api-key' => 'required|exists:tb_api_key,api_key|max:255',
             'security-hash' => 'required',
         ]);
@@ -62,7 +61,7 @@ class DailyExperienceController extends Controller
         }
 
         // Verify security hash.
-        $local_string = $request['account-id'] . $request['amount'] . $request['source'] . $request['api-key'];
+        $local_string = $request['account-id'] . $request['amount'] . $request['api-key'];
         $local_hash = $this->generate_local_hash($local_string, $request['account-id']);
 
         if ($local_hash != $request['security-hash']) {
@@ -106,7 +105,7 @@ class DailyExperienceController extends Controller
 
         return DailyExperienceEvent::create([
             'daily_experience_id' => $daily_experience->id,
-            'source' => $request['source'],
+            'api_key' => $request['api-key'],
             'delta' => $delta,
         ]);
     }

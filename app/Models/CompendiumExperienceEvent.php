@@ -11,5 +11,5 @@ class CompendiumExperienceEvent extends Model
 
     protected $table = 'tb_compendium_experience_events';
     protected $guarded = ['id'];
-    protected $fillable = ['compendium_experience_id', 'source', 'delta'];
+    protected $fillable = ['compendium_experience_id', 'api_key', 'delta'];
 }

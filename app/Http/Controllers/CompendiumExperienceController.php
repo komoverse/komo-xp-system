@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\DB;
 use App\Models\CompendiumExperience;
 use App\Models\CompendiumExperienceEvent;
 use App\Models\GameExperienceMultiplier;
-// use App\Models\RawExperienceRecord;
 use App\Models\Season;
 use App\Helpers\Helper;
 use Carbon\Carbon;
@@ -53,7 +52,6 @@ class CompendiumExperienceController extends Controller
     private function add_compendium_experience(Request $request){
         // Validate entry.
         $validator = Validator::make($request->all(), [
-            'source' => 'required|max:255',
             'api-key' => 'required|exists:tb_api_key,api_key|max:255',
             'game-experience' => 'required|numeric|max:2147483647',
             'security-hash' => 'required',
@@ -65,7 +63,7 @@ class CompendiumExperienceController extends Controller
         }
 
         // Verify security hash.
-        $local_string = $request['account-id'] . $request['source'] . $request['api-key'] . $request['game-experience'];
+        $local_string = $request['account-id'] . $request['api-key'] . $request['game-experience'];
         $local_hash = $this->generate_local_hash($local_string, $request['account-id']);
 
         if ($local_hash != $request['security-hash']) {
@@ -141,7 +139,7 @@ class CompendiumExperienceController extends Controller
 
         return CompendiumExperienceEvent::create([
             'compendium_experience_id' => $compendium_experience->id,
-            'source' => $request['source'],
+            'api_key' => $request['api-key'],
             'delta' => $delta,
         ]);
     }
