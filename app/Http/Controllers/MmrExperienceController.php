@@ -48,6 +48,44 @@ class MmrExperienceController extends Controller
 
     /* ----- API FUNCTIONS ----- */
 
+    private function add_mmr_experience(Request $request){
+        // Validate entry.
+        $validator = Validator::make($request->all(), [
+            'account-id' => 'required|exists:tb_account,id|max:255',
+            'amount' => 'required|numeric|max:2147483647',
+            'api-key' => 'required|exists:tb_api_key,api_key|max:255',
+            'security-hash' => 'required',
+        ]);
+
+        if ($validator->fails()) {
+            $this->json['message'] = $validator->errors();
+            return response()->json($this->json, 400); // Bad Request
+        }
+
+        // Verify security hash.
+        $local_string = $request['account-id'] . $request['amount'] . $request['api-key'];
+        $local_hash = Helper::generate_local_hash($local_string, $request['account-id']);
+
+        if ($local_hash != $request['security-hash']) {
+            $this->json['message'] = 'Hash does not match.';
+            return response()->json($this->json, 403); // Forbidden
+        }
+
+        // Start tallying up the experience gained.
+        $mmr_experience = $this->get_mmr_experience($request);
+        $mmr_experience->total_experience += $request['amount'];
+
+        // Create an event for audit purposes before saving.
+        $mmr_experience_event = $this->create_mmr_experience_event($request, $mmr_experience);
+        $mmr_experience->save();
+
+        // Return API status.
+        $this->json['status'] = 'success';
+        $this->json['message'] = 'MMR Experience successfully added to account! Audit record has been created.';
+        $this->json['data'] = $mmr_experience;
+        return response()->json($this->json, 200); // OK
+    }
+
     private function get_mmr_experience(Request $request, $jsonify_data = false) {
         // Validate entry.
         $validator = Validator::make($request->all(), [
@@ -77,6 +115,15 @@ class MmrExperienceController extends Controller
     }
 
     /* ----- HELPER FUNCTIONS ----- */
+
+    private function create_mmr_experience_event(Request $request, MmrExperience $mmr_experience) {
+        $delta = $mmr_experience->total_experience - $mmr_experience->getOriginal('total_experience');
+
+        return MmrExperienceEvent::create([
+            'mmr_experience_id' => $mmr_experience->id,
+            'delta' => $delta,
+        ]);
+    }
 
     private function initialize_mmr_experience(Request $request) {
         // // Get initial MMR experience (default to 0) if none found.
