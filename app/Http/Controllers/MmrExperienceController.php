@@ -36,11 +36,11 @@ class MmrExperienceController extends Controller
         }
 
         // List of APIs.
-        if ($request['add-mmr-experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        if ($request['add_mmr_experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             return $this->add_mmr_experience($request);
         }
 
-        if ($request['get-mmr-experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+        if ($request['get_mmr_experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'GET') {
             $jsonify_data = true;
             return $this->get_mmr_experience($request, $jsonify_data);
         }
@@ -51,10 +51,10 @@ class MmrExperienceController extends Controller
     private function add_mmr_experience(Request $request){
         // Validate entry.
         $validator = Validator::make($request->all(), [
-            'account-id' => 'required|exists:tb_account,id|max:255',
+            'account_id' => 'required|exists:tb_account,id|max:255',
             'amount' => 'required|numeric|max:2147483647',
-            'api-key' => 'required|exists:tb_api_key,api_key|max:255',
-            'security-hash' => 'required',
+            'api_key' => 'required|exists:tb_api_key,api_key|max:255',
+            'security_hash' => 'required',
         ]);
 
         if ($validator->fails()) {
@@ -63,10 +63,10 @@ class MmrExperienceController extends Controller
         }
 
         // Verify security hash.
-        $local_string = $request['account-id'] . $request['amount'] . $request['api-key'];
-        $local_hash = Helper::generate_local_hash($local_string, $request['account-id']);
+        $local_string = $request['account_id'] . $request['amount'] . $request['api_key'];
+        $local_hash = Helper::generate_local_hash($local_string, $request['account_id']);
 
-        if ($local_hash != $request['security-hash']) {
+        if ($local_hash != $request['security_hash']) {
             $this->json['message'] = 'Hash does not match.';
             return response()->json($this->json, 403); // Forbidden
         }
@@ -89,8 +89,8 @@ class MmrExperienceController extends Controller
     private function get_mmr_experience(Request $request, $jsonify_data = false) {
         // Validate entry.
         $validator = Validator::make($request->all(), [
-            'account-id' => 'required|exists:tb_account,id|max:255',
-            'api-key' => 'required|exists:tb_api_key,api_key|max:255',
+            'account_id' => 'required|exists:tb_account,id|max:255',
+            'api_key' => 'required|exists:tb_api_key,api_key|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -99,8 +99,8 @@ class MmrExperienceController extends Controller
         }
 
         // Check for MMR experience based on given api key.
-        $mmr_experience = MmrExperience::where('account_id', $request['account-id'])
-            ->where('api_key', $request['api-key'])
+        $mmr_experience = MmrExperience::where('account_id', $request['account_id'])
+            ->where('api_key', $request['api_key'])
             ->orderBy('id', 'ASC')
             ->first();
 
@@ -128,7 +128,7 @@ class MmrExperienceController extends Controller
     private function initialize_mmr_experience(Request $request) {
         // // Get initial MMR experience (default to 0) if none found.
         // $initial_mmr_experience = DB::table('tb_default_mmr_score')
-        //     ->where('api_key', $request['api-key'])
+        //     ->where('api_key', $request['api_key'])
         //     ->first();
 
         if (isset($initial_mmr_experience)) {
@@ -141,8 +141,8 @@ class MmrExperienceController extends Controller
 
         // Initialize MMR Experience.
         $mmr_experience = MmrExperience::create([
-            'account_id' => $request['account-id'],
-            'api_key' => $request['api-key'],
+            'account_id' => $request['account_id'],
+            'api_key' => $request['api_key'],
             'total_experience' => $initial_mmr_experience,
         ]);
 

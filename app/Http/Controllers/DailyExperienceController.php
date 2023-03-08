@@ -35,11 +35,11 @@ class DailyExperienceController extends Controller
         }
 
         // List of APIs.
-        if ($request['add-daily-experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        if ($request['add_daily_experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             return $this->add_daily_experience($request);
         }
 
-        if ($request['get-daily-experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+        if ($request['get_daily_experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'GET') {
             $jsonify_data = true;
             return $this->get_daily_experience($request, $jsonify_data);
         }
@@ -50,10 +50,10 @@ class DailyExperienceController extends Controller
     private function add_daily_experience(Request $request){
         // Validate entry.
         $validator = Validator::make($request->all(), [
-            'account-id' => 'required|exists:tb_account,id|max:255',
+            'account_id' => 'required|exists:tb_account,id|max:255',
             'amount' => 'required|numeric|max:2147483647',
-            'api-key' => 'required|exists:tb_api_key,api_key|max:255',
-            'security-hash' => 'required',
+            'api_key' => 'required|exists:tb_api_key,api_key|max:255',
+            'security_hash' => 'required',
         ]);
 
         if ($validator->fails()) {
@@ -62,10 +62,10 @@ class DailyExperienceController extends Controller
         }
 
         // Verify security hash.
-        $local_string = $request['account-id'] . $request['amount'] . $request['api-key'];
-        $local_hash = Helper::generate_local_hash($local_string, $request['account-id']);
+        $local_string = $request['account_id'] . $request['amount'] . $request['api_key'];
+        $local_hash = Helper::generate_local_hash($local_string, $request['account_id']);
 
-        if ($local_hash != $request['security-hash']) {
+        if ($local_hash != $request['security_hash']) {
             $this->json['message'] = 'Hash does not match.';
             return response()->json($this->json, 403); // Forbidden
         }
@@ -88,7 +88,7 @@ class DailyExperienceController extends Controller
     private function get_daily_experience(Request $request,$jsonify_data = false) {
         // Validate entry.
         $validator = Validator::make($request->all(), [
-            'account-id' => 'required|exists:tb_account,id|max:255',
+            'account_id' => 'required|exists:tb_account,id|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -97,7 +97,7 @@ class DailyExperienceController extends Controller
         }
 
         // Get daily experience.
-        $daily_experience = DailyExperience::where('account_id', $request['account-id'])
+        $daily_experience = DailyExperience::where('account_id', $request['account_id'])
             ->whereDate('created_at', Carbon::today())
             ->orderBy('id', 'ASC')
             ->first();
@@ -117,14 +117,14 @@ class DailyExperienceController extends Controller
 
         return DailyExperienceEvent::create([
             'daily_experience_id' => $daily_experience->id,
-            'api_key' => $request['api-key'],
+            'api_key' => $request['api_key'],
             'delta' => $delta,
         ]);
     }
 
     private function initialize_daily_experience(Request $request) {
         $daily_experience = DailyExperience::create([
-            'account_id' => $request['account-id'],
+            'account_id' => $request['account_id'],
             'total_experience' => 0,
         ]);
 

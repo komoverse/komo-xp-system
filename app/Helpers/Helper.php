@@ -27,7 +27,7 @@ class Helper
 
     public static function verify_user(Request $request){
         $user = DB::table('tb_account')
-            ->where('id', $request['account-id'])
+            ->where('id', $request['account_id'])
             ->where('is_verified', 1)
             ->where('is_suspended', 0)
             ->first();
@@ -38,7 +38,7 @@ class Helper
 
     public static function verify_rate_limit(Request $request, $attempts_per_minute = 30){
         $rate_limited = !RateLimiter::attempt(
-            'User: ' . $request['account-id'],
+            'User: ' . $request['account_id'],
             $attempts_per_minute,
             function() {}
         );

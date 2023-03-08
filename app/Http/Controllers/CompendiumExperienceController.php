@@ -37,11 +37,11 @@ class CompendiumExperienceController extends Controller
         }
 
         // List of APIs.
-        if ($request['add-compendium-experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+        if ($request['add_compendium_experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             return $this->add_compendium_experience($request);
         }
 
-        if ($request['get-compendium-experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+        if ($request['get_compendium_experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'GET') {
             $jsonify_data = true;
             return $this->get_compendium_experience($request, $jsonify_data);
         }
@@ -52,10 +52,10 @@ class CompendiumExperienceController extends Controller
     private function add_compendium_experience(Request $request){
         // Validate entry.
         $validator = Validator::make($request->all(), [
-            'account-id' => 'required|exists:tb_account,id|max:255',
-            'api-key' => 'required|exists:tb_api_key,api_key|max:255',
-            'game-experience' => 'required|numeric|max:2147483647',
-            'security-hash' => 'required',
+            'account_id' => 'required|exists:tb_account,id|max:255',
+            'api_key' => 'required|exists:tb_api_key,api_key|max:255',
+            'game_experience' => 'required|numeric|max:2147483647',
+            'security_hash' => 'required',
         ]);
 
         if ($validator->fails()) {
@@ -64,16 +64,16 @@ class CompendiumExperienceController extends Controller
         }
 
         // Verify security hash.
-        $local_string = $request['account-id'] . $request['api-key'] . $request['game-experience'];
-        $local_hash = Helper::generate_local_hash($local_string, $request['account-id']);
+        $local_string = $request['account_id'] . $request['api_key'] . $request['game_experience'];
+        $local_hash = Helper::generate_local_hash($local_string, $request['account_id']);
 
-        if ($local_hash != $request['security-hash']) {
+        if ($local_hash != $request['security_hash']) {
             $this->json['message'] = 'Hash does not match.';
             return response()->json($this->json, 403); // Forbidden
         }
 
         // Check if game has any multipliers (default to 0x if there is no multiplier).
-        $game_multipliers = GameExperienceMultiplier::where('api_key', $request['api-key'])->first();
+        $game_multipliers = GameExperienceMultiplier::where('api_key', $request['api_key'])->first();
         $compendium_xp_multiplier = 0.0;
         if (isset($game_multipliers)) {
             $compendium_xp_multiplier = $game_multipliers->compendium_multiplier;
@@ -88,7 +88,7 @@ class CompendiumExperienceController extends Controller
         }
 
         // Tally up the compendium experience with the returned game multipliers.
-        $compendium_experience->total_experience += $compendium_xp_multiplier * $request['game-experience'];
+        $compendium_experience->total_experience += $compendium_xp_multiplier * $request['game_experience'];
         $compendium_experience_event = $this->create_compendium_experience_event($request, $compendium_experience);
         $compendium_experience->save();
 
@@ -102,7 +102,7 @@ class CompendiumExperienceController extends Controller
     private function get_compendium_experience(Request $request, $jsonify_data = false) {
         // Validate entry.
         $validator = Validator::make($request->all(), [
-            'account-id' => 'required|exists:tb_account,id|max:255',
+            'account_id' => 'required|exists:tb_account,id|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -128,7 +128,7 @@ class CompendiumExperienceController extends Controller
         }
 
         // Check for compendium experience based on current season ID.
-        $compendium_experience = CompendiumExperience::where('account_id', $request['account-id'])
+        $compendium_experience = CompendiumExperience::where('account_id', $request['account_id'])
             ->where('season_id', $current_season->id)
             ->orderBy('id', 'ASC')
             ->first();
@@ -150,7 +150,7 @@ class CompendiumExperienceController extends Controller
 
         return CompendiumExperienceEvent::create([
             'compendium_experience_id' => $compendium_experience->id,
-            'api_key' => $request['api-key'],
+            'api_key' => $request['api_key'],
             'delta' => $delta,
         ]);
     }
@@ -158,7 +158,7 @@ class CompendiumExperienceController extends Controller
     private function initialize_compendium_experience(Request $request, $season_id) {
         $compendium_experience = CompendiumExperience::create([
             'season_id' => $current_season->id,
-            'account_id' => $request['account-id'],
+            'account_id' => $request['account_id'],
             'total_experience' => 0,
         ]);
 
