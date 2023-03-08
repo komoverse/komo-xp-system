@@ -9,7 +9,7 @@ class DailyExperience extends Model
 {
     use HasFactory;
 
-    protected $table = 'tb_daily_experiences';
+    protected $table = 'xp_daily_experiences';
     protected $guarded = ['id'];
     protected $fillable = ['account_id', 'total_experience'];
 }

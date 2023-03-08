@@ -5,11 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class CompendiumExperienceEvent extends Model
+class CompendiumSeason extends Model
 {
     use HasFactory;
 
-    protected $table = 'xp_compendium_experience_events';
+    protected $table = 'xp_compendium_seasons';
     protected $guarded = ['id'];
-    protected $fillable = ['compendium_experience_id', 'api_key', 'delta'];
+    protected $fillable = ['name', 'start_date', 'end_date'];
 }

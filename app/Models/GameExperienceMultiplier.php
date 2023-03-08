@@ -9,7 +9,7 @@ class GameExperienceMultiplier extends Model
 {
     use HasFactory;
 
-    protected $table = 'tb_game_experience_multipliers';
+    protected $table = 'xp_game_experience_multipliers';
     protected $guarded = ['id'];
     protected $fillable = ['api_key', 'daily_multiplier', 'mmr_multiplier', 'compendium_multiplier'];
 

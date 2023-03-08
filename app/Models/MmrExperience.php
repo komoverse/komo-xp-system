@@ -9,7 +9,7 @@ class MmrExperience extends Model
 {
     use HasFactory;
 
-    protected $table = 'tb_mmr_experiences';
+    protected $table = 'xp_mmr_experiences';
     protected $guarded = ['id'];
     protected $fillable = ['account_id', 'total_experience'];
 }

@@ -9,7 +9,7 @@ class Season extends Model
 {
     use HasFactory;
 
-    protected $table = 'tb_seasons';
+    protected $table = 'xp_compendium_seasons';
     protected $guarded = ['id'];
     protected $fillable = ['name', 'start_date', 'end_date'];
 }

@@ -8,8 +8,8 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\DB;
 use App\Models\CompendiumExperience;
 use App\Models\CompendiumExperienceEvent;
+use App\Models\CompendiumSeason;
 use App\Models\GameExperienceMultiplier;
-use App\Models\Season;
 use App\Helpers\Helper;
 use Carbon\Carbon;
 
@@ -100,7 +100,7 @@ class CompendiumExperienceController extends Controller
 
     private function get_compendium_experience(Request $request, $jsonify_data = false) {
         // Get current season.
-        $current_season = Season::where('start_date', '<=', Carbon::now())
+        $current_season = CompendiumSeason::where('start_date', '<=', Carbon::now())
             ->where('end_date', '>=', Carbon::now())
             ->orderBy('id', 'ASC')
             ->first();
