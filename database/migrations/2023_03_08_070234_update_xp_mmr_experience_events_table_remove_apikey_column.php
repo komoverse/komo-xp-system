@@ -13,7 +13,6 @@ return new class extends Migration
     {
         Schema::table('xp_mmr_experience_events', function (Blueprint $table) {
             $table->dropColumn('api_key');
-
         });
     }
 

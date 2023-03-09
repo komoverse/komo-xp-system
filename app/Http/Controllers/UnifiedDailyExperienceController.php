@@ -4,13 +4,13 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use App\Models\DailyExperience;
-use App\Models\DailyExperienceEvent;
+use App\Models\UnifiedDailyExperience;
+use App\Models\UnifiedDailyExperienceEvent;
 use App\Models\GameExperienceMultiplier;
 use App\Helpers\Helper;
 use Carbon\Carbon;
 
-class DailyExperienceController extends Controller
+class UnifiedDailyExperienceController extends Controller
 {
     public function __construct(Request $request){
         $this->is_https = Helper::is_https();
@@ -18,7 +18,7 @@ class DailyExperienceController extends Controller
         $this->json = array('status' => 'fail', 'message' => null);
     }
 
-    public function api_daily_experience(Request $request){
+    public function api_unified_daily_experience(Request $request){
         // Guard statements.
         if (!Helper::verify_connection($request)) {
             $this->json['message'] = 'Connection fired from an unsecured connection (use HTTPS).';
@@ -36,19 +36,19 @@ class DailyExperienceController extends Controller
         }
 
         // List of APIs.
-        if ($request['add_daily_experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-            return $this->add_daily_experience($request);
+        if ($request['add_unified_daily_experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+            return $this->add_unified_daily_experience($request);
         }
 
-        if ($request['get_daily_experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+        if ($request['get_unified_daily_experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'GET') {
             $jsonify_data = true;
-            return $this->get_daily_experience($request, $jsonify_data);
+            return $this->get_unified_daily_experience($request, $jsonify_data);
         }
     }
 
     /* ----- API FUNCTIONS ----- */
 
-    private function add_daily_experience(Request $request){
+    private function add_unified_daily_experience(Request $request){
         // Validate entry.
         $validator = Validator::make($request->all(), [
             'account_id' => 'required|exists:tb_account,id|max:255',
@@ -73,28 +73,28 @@ class DailyExperienceController extends Controller
 
         // Check if game has any multipliers (default to 0x if there is none).
         $game_multipliers = GameExperienceMultiplier::where('api_key', $request['api_key'])->first();
-        $daily_xp_multiplier = 0.0;
+        $unified_daily_xp_multiplier = 0.0;
         if (isset($game_multipliers)) {
-            $daily_xp_multiplier = $game_multipliers->daily_multiplier;
+            $unified_daily_xp_multiplier = $game_multipliers->unified_daily_multiplier;
         }
 
         // Start tallying up the experience gained.
-        $daily_experience = $this->get_daily_experience($request);
-        $daily_experience->total_experience = max($daily_experience->total_experience + ($daily_xp_multiplier * $request['amount']), 0);
+        $unified_daily_experience = $this->get_unified_daily_experience($request);
+        $unified_daily_experience->total_experience = max($unified_daily_experience->total_experience + ($unified_daily_xp_multiplier * $request['amount']), 0);
 
         // Create an event for audit purposes before saving.
-        $daily_experience_event = $this->create_daily_experience_event($request, $daily_experience);
-        $daily_experience->save();
+        $unified_daily_experience_event = $this->create_unified_daily_experience_event($request, $unified_daily_experience);
+        $unified_daily_experience->save();
 
         // Return API status.
         $this->json['status'] = 'success';
-        $this->json['message'] = 'Daily Experience successfully added to account! Audit record has been created.';
-        $this->json['data']['daily_experience'] = $daily_experience;
-        $this->json['data']['daily_experience_event'] = $daily_experience_event;
+        $this->json['message'] = 'Unified Daily Experience successfully added to account! Audit record has been created.';
+        $this->json['data']['unified_daily_experience'] = $unified_daily_experience;
+        $this->json['data']['unified_daily_experience_event'] = $unified_daily_experience_event;
         return response()->json($this->json, 200); // OK
     }
 
-    private function get_daily_experience(Request $request,$jsonify_data = false) {
+    private function get_unified_daily_experience(Request $request,$jsonify_data = false) {
         // Validate entry.
         $validator = Validator::make($request->all(), [
             'account_id' => 'required|exists:tb_account,id|max:255',
@@ -105,38 +105,38 @@ class DailyExperienceController extends Controller
             return response()->json($this->json, 400); // Bad Request
         }
 
-        // Get daily experience.
-        $daily_experience = DailyExperience::where('account_id', $request['account_id'])
+        // Get unified_daily experience.
+        $unified_daily_experience = UnifiedDailyExperience::where('account_id', $request['account_id'])
             ->whereDate('created_at', Carbon::today())
             ->orderBy('id', 'ASC')
             ->first();
 
-        if ($daily_experience == null) {
-            $daily_experience = $this->initialize_daily_experience($request);
+        if ($unified_daily_experience == null) {
+            $unified_daily_experience = $this->initialize_unified_daily_experience($request);
         }
 
-        if ($jsonify_data) return response()->json($daily_experience, 200); // OK
-        return $daily_experience;
+        if ($jsonify_data) return response()->json($unified_daily_experience, 200); // OK
+        return $unified_daily_experience;
     }
 
     /* ----- HELPER FUNCTIONS ----- */
 
-    private function create_daily_experience_event(Request $request, DailyExperience $daily_experience) {
-        $delta = $daily_experience->total_experience - $daily_experience->getOriginal('total_experience');
+    private function create_unified_daily_experience_event(Request $request, UnifiedDailyExperience $unified_daily_experience) {
+        $delta = $unified_daily_experience->total_experience - $unified_daily_experience->getOriginal('total_experience');
 
-        return DailyExperienceEvent::create([
-            'daily_experience_id' => $daily_experience->id,
+        return UnifiedDailyExperienceEvent::create([
+            'unified_daily_experience_id' => $unified_daily_experience->id,
             'api_key' => $request['api_key'],
             'delta' => $delta,
         ]);
     }
 
-    private function initialize_daily_experience(Request $request) {
-        $daily_experience = DailyExperience::create([
+    private function initialize_unified_daily_experience(Request $request) {
+        $unified_daily_experience = UnifiedDailyExperience::create([
             'account_id' => $request['account_id'],
             'total_experience' => 0,
         ]);
 
-        return $daily_experience;
+        return $unified_daily_experience;
     }
 }

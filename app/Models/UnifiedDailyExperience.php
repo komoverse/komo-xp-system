@@ -5,11 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class DailyExperience extends Model
+class UnifiedDailyExperience extends Model
 {
     use HasFactory;
 
-    protected $table = 'xp_daily_experiences';
+    protected $table = 'xp_unified_daily_experiences';
     protected $guarded = ['id'];
     protected $fillable = ['account_id', 'total_experience'];
 }
