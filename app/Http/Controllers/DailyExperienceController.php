@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Models\DailyExperience;
 use App\Models\DailyExperienceEvent;
+use App\Models\GameExperienceMultiplier;
 use App\Helpers\Helper;
 use Carbon\Carbon;
 
@@ -62,7 +63,7 @@ class DailyExperienceController extends Controller
         }
 
         // Verify security hash.
-        $local_string = $request['account_id'] . $request['amount'] . $request['api_key'];
+        $local_string = $request['account_id'] . $request['api_key'] . $request['amount'];
         $local_hash = Helper::generate_local_hash($local_string, $request['account_id']);
 
         if ($local_hash != $request['security_hash']) {
@@ -70,9 +71,16 @@ class DailyExperienceController extends Controller
             return response()->json($this->json, 403); // Forbidden
         }
 
+        // Check if game has any multipliers (default to 0x if there is none).
+        $game_multipliers = GameExperienceMultiplier::where('api_key', $request['api_key'])->first();
+        $daily_xp_multiplier = 0.0;
+        if (isset($game_multipliers)) {
+            $daily_xp_multiplier = $game_multipliers->daily_multiplier;
+        }
+
         // Start tallying up the experience gained.
         $daily_experience = $this->get_daily_experience($request);
-        $daily_experience->total_experience = max($daily_experience->total_experience + $request['amount'], 0);
+        $daily_experience->total_experience = max($daily_experience->total_experience + ($daily_xp_multiplier * $request['amount']), 0);
 
         // Create an event for audit purposes before saving.
         $daily_experience_event = $this->create_daily_experience_event($request, $daily_experience);
@@ -81,7 +89,8 @@ class DailyExperienceController extends Controller
         // Return API status.
         $this->json['status'] = 'success';
         $this->json['message'] = 'Daily Experience successfully added to account! Audit record has been created.';
-        $this->json['data'] = $daily_experience;
+        $this->json['data']['daily_experience'] = $daily_experience;
+        $this->json['data']['daily_experience_event'] = $daily_experience_event;
         return response()->json($this->json, 200); // OK
     }
 

@@ -63,7 +63,7 @@ class MmrExperienceController extends Controller
         }
 
         // Verify security hash.
-        $local_string = $request['account_id'] . $request['amount'] . $request['api_key'];
+        $local_string = $request['account_id'] . $request['api_key'] . $request['amount'];
         $local_hash = Helper::generate_local_hash($local_string, $request['account_id']);
 
         if ($local_hash != $request['security_hash']) {

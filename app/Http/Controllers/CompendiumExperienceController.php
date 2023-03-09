@@ -54,7 +54,7 @@ class CompendiumExperienceController extends Controller
         $validator = Validator::make($request->all(), [
             'account_id' => 'required|exists:tb_account,id|max:255',
             'api_key' => 'required|exists:tb_api_key,api_key|max:255',
-            'game_experience' => 'required|numeric|max:2147483647',
+            'amount' => 'required|numeric|max:2147483647',
             'security_hash' => 'required',
         ]);
 
@@ -64,7 +64,7 @@ class CompendiumExperienceController extends Controller
         }
 
         // Verify security hash.
-        $local_string = $request['account_id'] . $request['api_key'] . $request['game_experience'];
+        $local_string = $request['account_id'] . $request['api_key'] . $request['amount'];
         $local_hash = Helper::generate_local_hash($local_string, $request['account_id']);
 
         if ($local_hash != $request['security_hash']) {
@@ -72,7 +72,7 @@ class CompendiumExperienceController extends Controller
             return response()->json($this->json, 403); // Forbidden
         }
 
-        // Check if game has any multipliers (default to 0x if there is no multiplier).
+        // Check if game has any multipliers (default to 0x if there is none).
         $game_multipliers = GameExperienceMultiplier::where('api_key', $request['api_key'])->first();
         $compendium_xp_multiplier = 0.0;
         if (isset($game_multipliers)) {
@@ -88,7 +88,11 @@ class CompendiumExperienceController extends Controller
         }
 
         // Tally up the compendium experience with the returned game multipliers.
-        $compendium_experience->total_experience += $compendium_xp_multiplier * $request['game_experience'];
+        if ($request['amount'] < 0) $request['amount'] = 0; // Do not allow minus values.
+
+        dd($request->all());
+
+        $compendium_experience->total_experience += $compendium_xp_multiplier * $request['amount'];
         $compendium_experience_event = $this->create_compendium_experience_event($request, $compendium_experience);
         $compendium_experience->save();
 
