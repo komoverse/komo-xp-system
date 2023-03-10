@@ -127,19 +127,6 @@ class DailyExperienceController extends Controller
     }
 
     private function initialize_daily_experience(Request $request) {
-        // // Get initial Daily experience (default to 0) if none found.
-        // $initial_daily_experience = DB::table('tb_default_daily_score')
-        //     ->where('api_key', $request['api_key'])
-        //     ->first();
-
-        if (isset($initial_daily_experience)) {
-            $initial_daily_experience = $initial_daily_experience->default;
-        }
-
-        if (!isset($initial_daily_experience)) {
-            $initial_daily_experience = 0;
-        }
-
         // Initialize Daily Experience.
         $daily_experience = DailyExperience::create([
             'account_id' => $request['account_id'],

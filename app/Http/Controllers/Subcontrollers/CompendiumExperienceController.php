@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Subcontrollers;
 
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use App\Models\CompendiumExperience;
@@ -10,68 +11,13 @@ use App\Models\CompendiumSeason;
 use App\Models\GameExperienceMultiplier;
 use App\Helpers\Helper;
 use Carbon\Carbon;
-
 class CompendiumExperienceController extends Controller
 {
-    public function __construct(Request $request){
-        $this->is_https = Helper::is_https();
-        $this->is_local = Helper::is_local();
+    public function __construct(){
         $this->json = array('status' => 'fail', 'message' => null);
     }
 
-    public function api_compendium_experience(Request $request){
-        // Guard statements.
-        if (!Helper::verify_connection($request)) {
-            $this->json['message'] = 'Connection fired from an unsecured connection (use HTTPS).';
-            return response()->json($this->json, 403); // Forbidden
-        }
-
-        if (!Helper::verify_user($request)) {
-            $this->json['message'] = 'Invalid account ID. This either means that the user does not exist, registered but not verified, or is suspended.';
-            return response()->json($this->json, 400); // Bad Request
-        }
-
-        if (Helper::verify_rate_limit($request)) {
-            $this->json['message'] = 'You are being rate limited.';
-            return response()->json($this->json, 429); // Too Many Requests
-        }
-
-        // List of APIs.
-        if ($request['add_compendium_experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-            return $this->add_compendium_experience($request);
-        }
-
-        if ($request['get_compendium_experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'GET') {
-            $jsonify_data = true;
-            return $this->get_compendium_experience($request, $jsonify_data);
-        }
-    }
-
-    /* ----- API FUNCTIONS ----- */
-
-    private function add_compendium_experience(Request $request){
-        // Validate entry.
-        $validator = Validator::make($request->all(), [
-            'account_id' => 'required|exists:tb_account,id|max:255',
-            'api_key' => 'required|exists:tb_api_key,api_key|max:255',
-            'amount' => 'required|numeric|max:2147483647',
-            'security_hash' => 'required',
-        ]);
-
-        if ($validator->fails()) {
-            $this->json['message'] = $validator->errors();
-            return response()->json($this->json, 400); // Bad Request
-        }
-
-        // Verify security hash.
-        $local_string = $request['account_id'] . $request['api_key'] . $request['amount'];
-        $local_hash = Helper::generate_local_hash($local_string, $request['account_id']);
-
-        if ($local_hash != $request['security_hash']) {
-            $this->json['message'] = 'Hash does not match.';
-            return response()->json($this->json, 403); // Forbidden
-        }
-
+    public function add_compendium_experience(Request $request){
         // Check if game has any multipliers (default to 0x if there is none).
         $game_multipliers = GameExperienceMultiplier::where('api_key', $request['api_key'])->first();
         $compendium_xp_multiplier = 0.0;
@@ -93,6 +39,9 @@ class CompendiumExperienceController extends Controller
         $compendium_experience_event = $this->create_compendium_experience_event($request, $compendium_experience);
         $compendium_experience->save();
 
+        // Obfuscate api_key returned for security.
+        $compendium_experience_event->api_key = '[OBFUSCATED]';
+
         // Return API status.
         $this->json['status'] = 'success';
         $this->json['message'] = 'Compendium Experience successfully added to account! Audit record has been created.';
@@ -101,7 +50,7 @@ class CompendiumExperienceController extends Controller
         return response()->json($this->json, 200); // OK
     }
 
-    private function get_compendium_experience(Request $request, $jsonify_data = false) {
+    public function get_compendium_experience(Request $request, $jsonify_data = false) {
         // Validate entry.
         $validator = Validator::make($request->all(), [
             'account_id' => 'required|exists:tb_account,id|max:255',
@@ -135,7 +84,7 @@ class CompendiumExperienceController extends Controller
             ->orderBy('id', 'ASC')
             ->first();
 
-        // If no compendium experience found, initialize one and create an audit.
+        // If no compendium experience found, initialize one.
         if ($compendium_experience == null) {
             $compendium_experience = $this->initialize_compendium_experience($request, $current_season->id);
         }
