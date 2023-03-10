@@ -28,7 +28,7 @@ class UnifiedDailyExperienceController extends Controller
         // Start tallying up the experience gained.
         $unified_daily_experience = $this->get_unified_daily_experience($request);
         $unified_daily_experience->total_experience = max($unified_daily_experience->total_experience + ($unified_daily_xp_multiplier * $request['amount']), 0);
-
+        
         // Create an event for audit purposes before saving.
         $unified_daily_experience_event = $this->create_unified_daily_experience_event($request, $unified_daily_experience);
         $unified_daily_experience->save();

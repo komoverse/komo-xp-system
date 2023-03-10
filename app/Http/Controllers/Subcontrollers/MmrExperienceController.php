@@ -20,7 +20,7 @@ class MmrExperienceController extends Controller
     public function add_mmr_experience(Request $request){
         // Start tallying up the experience gained.
         $mmr_experience = $this->get_mmr_experience($request);
-        $mmr_experience->total_experience += $request['amount'];
+        $mmr_experience->total_experience = max($mmr_experience->total_experience + $request['amount'], 0);
 
         // Create an event for audit purposes before saving.
         $mmr_experience_event = $this->create_mmr_experience_event($request, $mmr_experience);

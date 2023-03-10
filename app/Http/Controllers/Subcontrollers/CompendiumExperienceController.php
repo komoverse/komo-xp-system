@@ -35,7 +35,8 @@ class CompendiumExperienceController extends Controller
 
         // Tally up the compendium experience with the returned game multipliers.
         if ($request['amount'] < 0) $request['amount'] = 0; // Do not allow minus values.
-        $compendium_experience->total_experience += $compendium_xp_multiplier * $request['amount'];
+        $compendium_experience->total_experience = max($compendium_experience->total_experience + ($compendium_xp_multiplier * $request['amount']), 0);
+
         $compendium_experience_event = $this->create_compendium_experience_event($request, $compendium_experience);
         $compendium_experience->save();
 

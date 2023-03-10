@@ -13,6 +13,8 @@ use App\Helpers\Helper;
 class ExperienceController extends Controller
 {
     public function __construct(Request $request){
+        $this->json = array('status' => 'fail', 'message' => null);
+
         // Initialize controllers.
         $this->unified_daily_experience_controller = new UnifiedDailyExperienceController;
         $this->daily_experience_controller = new DailyExperienceController;
