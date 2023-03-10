@@ -82,7 +82,8 @@ class MmrExperienceController extends Controller
         // Return API status.
         $this->json['status'] = 'success';
         $this->json['message'] = 'MMR Experience successfully added to account! Audit record has been created.';
-        $this->json['data'] = $mmr_experience;
+        $this->json['data']['mmr_experience'] = $mmr_experience;
+        $this->json['data']['mmr_experience_event'] = $mmr_experience_event;
         return response()->json($this->json, 200); // OK
     }
 

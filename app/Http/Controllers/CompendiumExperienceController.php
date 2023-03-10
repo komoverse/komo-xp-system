@@ -96,7 +96,8 @@ class CompendiumExperienceController extends Controller
         // Return API status.
         $this->json['status'] = 'success';
         $this->json['message'] = 'Compendium Experience successfully added to account! Audit record has been created.';
-        $this->json['data'] = $compendium_experience;
+        $this->json['data']['compendium_experience'] = $compendium_experience;
+        $this->json['data']['compendium_experience_event'] = $compendium_experience_event;
         return response()->json($this->json, 200); // OK
     }
 
