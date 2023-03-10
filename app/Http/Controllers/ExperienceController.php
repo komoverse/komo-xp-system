@@ -13,12 +13,14 @@ use App\Helpers\Helper;
 class ExperienceController extends Controller
 {
     public function __construct(Request $request){
-        $this->is_https = Helper::is_https();
-        $this->is_local = Helper::is_local();
-        $this->json = array('status' => 'fail', 'message' => null);
+        // Initialize controllers.
+        $this->unified_daily_experience_controller = new UnifiedDailyExperienceController;
+        $this->daily_experience_controller = new DailyExperienceController;
+        $this->mmr_experience_controller = new MmrExperienceController;
+        $this->compendium_experience_controller = new CompendiumExperienceController;
     }
 
-    public function api_add_experience(Request $request){
+    public function api_experience(Request $request){
         // Guard statements.
         if (!Helper::verify_connection($request)) {
             $this->json['message'] = 'Connection fired from an unsecured connection (use HTTPS).';
@@ -38,6 +40,26 @@ class ExperienceController extends Controller
         // List of APIs.
         if ($request['add_experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             return $this->add_experience($request);
+        }
+
+        if ($request['get_experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+            return $this->get_experience($request);
+        }
+
+        if ($request['get_unified_daily_experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+            return $this->get_unified_daily_experience($request);
+        }
+
+        if ($request['get_daily_experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+            return $this->get_daily_experience($request);
+        }
+
+        if ($request['get_mmr_experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+            return $this->get_mmr_experience($request);
+        }
+
+        if ($request['get_compendium_experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+            return $this->get_compendium_experience($request);
         }
     }
 
@@ -67,16 +89,90 @@ class ExperienceController extends Controller
         }
 
         // Add inputs into all four experience types.
-        $unified_daily_experience_controller = new UnifiedDailyExperienceController;
-        $daily_experience_controller = new DailyExperienceController;
-        $mmr_experience_controller = new MmrExperienceController;
-        $compendium_experience_controller = new CompendiumExperienceController;
-
-        $json['data']['unified_daily_experience'] = $unified_daily_experience_controller->add_unified_daily_experience($request);
-        $json['data']['daily_experience'] = $daily_experience_controller->add_daily_experience($request);
-        $json['data']['mmr_experience'] = $mmr_experience_controller->add_mmr_experience($request);
-        $json['data']['compendium_experience'] = $compendium_experience_controller->add_compendium_experience($request);
+        $json['data']['unified_daily_experience'] = $this->unified_daily_experience_controller->add_unified_daily_experience($request);
+        $json['data']['daily_experience'] = $this->daily_experience_controller->add_daily_experience($request);
+        $json['data']['mmr_experience'] = $this->mmr_experience_controller->add_mmr_experience($request);
+        $json['data']['compendium_experience'] = $this->compendium_experience_controller->add_compendium_experience($request);
 
         return $json;
+    }
+
+    private function get_experience(Request $request){
+        // Validate entry.
+        $validator = Validator::make($request->all(), [
+            'account_id' => 'required|exists:tb_account,id|max:255',
+            'api_key' => 'required|exists:tb_api_key,api_key|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            $this->json['message'] = $validator->errors();
+            return response()->json($this->json, 400); // Bad Request
+        }
+
+        // Return inputs of all four experience types.
+        $json['data']['unified_daily_experience'] = $this->unified_daily_experience_controller->get_unified_daily_experience($request, true);
+        $json['data']['daily_experience'] = $this->daily_experience_controller->get_daily_experience($request, true);
+        $json['data']['mmr_experience'] = $this->mmr_experience_controller->get_mmr_experience($request, true);
+        $json['data']['compendium_experience'] = $this->compendium_experience_controller->get_compendium_experience($request, true);
+
+        return $json;
+    }
+
+    private function get_unified_daily_experience(Request $request){
+        // Validate entry.
+        $validator = Validator::make($request->all(), [
+            'account_id' => 'required|exists:tb_account,id|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            $this->json['message'] = $validator->errors();
+            return response()->json($this->json, 400); // Bad Request
+        }
+
+        return $this->unified_daily_experience_controller->get_unified_daily_experience($request, true);
+    }
+
+    private function get_daily_experience(Request $request){
+        // Validate entry.
+        $validator = Validator::make($request->all(), [
+            'account_id' => 'required|exists:tb_account,id|max:255',
+            'api_key' => 'required|exists:tb_api_key,api_key|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            $this->json['message'] = $validator->errors();
+            return response()->json($this->json, 400); // Bad Request
+        }
+
+        return $this->daily_experience_controller->get_daily_experience($request, true);
+    }
+
+    private function get_mmr_experience(Request $request){
+        // Validate entry.
+        $validator = Validator::make($request->all(), [
+            'account_id' => 'required|exists:tb_account,id|max:255',
+            'api_key' => 'required|exists:tb_api_key,api_key|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            $this->json['message'] = $validator->errors();
+            return response()->json($this->json, 400); // Bad Request
+        }
+
+        return $this->mmr_experience_controller->get_mmr_experience($request, true);
+    }
+
+    private function get_compendium_experience(Request $request){
+        // Validate entry.
+        $validator = Validator::make($request->all(), [
+            'account_id' => 'required|exists:tb_account,id|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            $this->json['message'] = $validator->errors();
+            return response()->json($this->json, 400); // Bad Request
+        }
+
+        return $this->compendium_experience_controller->get_compendium_experience($request, true);
     }
 }

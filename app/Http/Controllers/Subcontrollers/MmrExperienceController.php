@@ -60,6 +60,9 @@ class MmrExperienceController extends Controller
             $mmr_experience = $this->initialize_mmr_experience($request);
         }
 
+        // Obfuscate api_key returned for security.
+        $mmr_experience->api_key = '[OBFUSCATED]';
+
         // Return data.
         if ($jsonify_data) return response()->json($mmr_experience, 200); // OK
         return $mmr_experience;

@@ -60,6 +60,9 @@ class DailyExperienceController extends Controller
             $daily_experience = $this->initialize_daily_experience($request);
         }
 
+        // Obfuscate api_key returned for security.
+        $daily_experience->api_key = '[OBFUSCATED]';
+
         // Return data.
         if ($jsonify_data) return response()->json($daily_experience, 200); // OK
         return $daily_experience;
