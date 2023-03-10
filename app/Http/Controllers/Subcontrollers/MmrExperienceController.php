@@ -26,9 +26,6 @@ class MmrExperienceController extends Controller
         $mmr_experience_event = $this->create_mmr_experience_event($request, $mmr_experience);
         $mmr_experience->save();
 
-        // Obfuscate api_key returned for security.
-        $mmr_experience->api_key = '[OBFUSCATED]';
-
         // Return API status.
         $this->json['status'] = 'success';
         $this->json['message'] = 'MMR Experience successfully added to account! Audit record has been created.';
@@ -59,9 +56,6 @@ class MmrExperienceController extends Controller
         if ($mmr_experience == null) {
             $mmr_experience = $this->initialize_mmr_experience($request);
         }
-
-        // Obfuscate api_key returned for security.
-        $mmr_experience->api_key = '[OBFUSCATED]';
 
         // Return data.
         if ($jsonify_data) return response()->json($mmr_experience, 200); // OK

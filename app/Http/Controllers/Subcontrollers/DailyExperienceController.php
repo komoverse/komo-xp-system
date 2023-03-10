@@ -26,9 +26,6 @@ class DailyExperienceController extends Controller
         $daily_experience_event = $this->create_daily_experience_event($request, $daily_experience);
         $daily_experience->save();
 
-        // Obfuscate api_key returned for security.
-        $daily_experience->api_key = '[OBFUSCATED]';
-
         // Return API status.
         $this->json['status'] = 'success';
         $this->json['message'] = 'Daily Experience successfully added to account! Audit record has been created.';
@@ -52,6 +49,7 @@ class DailyExperienceController extends Controller
         // Check for Daily experience based on given api key.
         $daily_experience = DailyExperience::where('account_id', $request['account_id'])
             ->where('api_key', $request['api_key'])
+            ->whereDate('created_at', Carbon::today())
             ->orderBy('id', 'ASC')
             ->first();
 
@@ -59,9 +57,6 @@ class DailyExperienceController extends Controller
         if ($daily_experience == null) {
             $daily_experience = $this->initialize_daily_experience($request);
         }
-
-        // Obfuscate api_key returned for security.
-        $daily_experience->api_key = '[OBFUSCATED]';
 
         // Return data.
         if ($jsonify_data) return response()->json($daily_experience, 200); // OK

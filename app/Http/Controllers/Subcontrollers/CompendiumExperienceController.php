@@ -39,9 +39,6 @@ class CompendiumExperienceController extends Controller
         $compendium_experience_event = $this->create_compendium_experience_event($request, $compendium_experience);
         $compendium_experience->save();
 
-        // Obfuscate api_key returned for security.
-        $compendium_experience_event->api_key = '[OBFUSCATED]';
-
         // Return API status.
         $this->json['status'] = 'success';
         $this->json['message'] = 'Compendium Experience successfully added to account! Audit record has been created.';

@@ -42,7 +42,7 @@ class ExperienceController extends Controller
             return $this->add_experience($request);
         }
 
-        if ($request['get_experience'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+        if ($request['get_all_experiences'] == 'true' && $_SERVER['REQUEST_METHOD'] === 'GET') {
             return $this->get_experience($request);
         }
 

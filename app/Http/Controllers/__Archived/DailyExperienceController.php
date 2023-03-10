@@ -102,6 +102,7 @@ class DailyExperienceController extends Controller
         // Check for Daily experience based on given api key.
         $daily_experience = DailyExperience::where('account_id', $request['account_id'])
             ->where('api_key', $request['api_key'])
+            ->whereDate('created_at', Carbon::today())
             ->orderBy('id', 'ASC')
             ->first();
 

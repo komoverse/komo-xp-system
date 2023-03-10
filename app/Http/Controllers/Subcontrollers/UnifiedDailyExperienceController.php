@@ -33,9 +33,6 @@ class UnifiedDailyExperienceController extends Controller
         $unified_daily_experience_event = $this->create_unified_daily_experience_event($request, $unified_daily_experience);
         $unified_daily_experience->save();
 
-        // Obfuscate api_key returned for security.
-        $unified_daily_experience_event->api_key = '[OBFUSCATED]';
-
         // Return API status.
         $this->json['status'] = 'success';
         $this->json['message'] = 'Unified Daily Experience successfully added to account! Audit record has been created.';
