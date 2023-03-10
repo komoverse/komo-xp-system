@@ -21,9 +21,15 @@ class CompendiumExperienceController extends Controller
         // Check if game has any multipliers (default to 0x if there is none).
         $game_multipliers = GameExperienceMultiplier::where('api_key', $request['api_key'])->first();
         $compendium_xp_multiplier = 0.0;
-        if (isset($game_multipliers)) {
-            $compendium_xp_multiplier = $game_multipliers->compendium_multiplier;
-        }
+
+        if (isset($game_multipliers)) $compendium_xp_multiplier = $game_multipliers->compendium_multiplier;
+        else GameExperienceMultiplier::create([
+            'api_key' => $request['api_key'],
+            'unified_daily_multiplier' => 1,
+            'daily_multiplier' => 1,
+            'mmr_multiplier' => 1,
+            'compendium_multiplier' => 1,
+        ]);
 
         // Check if a season is currently running. If not, return an acknowledged status.
         $compendium_experience = $this->get_compendium_experience($request);

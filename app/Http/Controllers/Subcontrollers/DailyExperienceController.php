@@ -18,13 +18,6 @@ class DailyExperienceController extends Controller
     }
 
     public function add_daily_experience(Request $request){
-        // Check if game has any multipliers (default to 0x if there is none).
-        $game_multipliers = GameExperienceMultiplier::where('api_key', $request['api_key'])->first();
-        $daily_xp_multiplier = 0.0;
-        if (isset($game_multipliers)) {
-            $daily_xp_multiplier = $game_multipliers->daily_multiplier;
-        }
-
         // Start tallying up the experience gained.
         $daily_experience = $this->get_daily_experience($request);
         $daily_experience->total_experience = max($daily_experience->total_experience + ($daily_xp_multiplier * $request['amount']), 0);
