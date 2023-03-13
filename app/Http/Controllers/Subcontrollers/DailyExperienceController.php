@@ -20,7 +20,7 @@ class DailyExperienceController extends Controller
     public function add_daily_experience(Request $request){
         // Start tallying up the experience gained.
         $daily_experience = $this->get_daily_experience($request);
-        $daily_experience->total_experience = max($daily_experience->total_experience + ($daily_xp_multiplier * $request['amount']), 0);
+        $daily_experience->total_experience = max($daily_experience->total_experience + $request['amount'], 0);
 
         // Create an event for audit purposes before saving.
         $daily_experience_event = $this->create_daily_experience_event($request, $daily_experience);

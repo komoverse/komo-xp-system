@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ExperienceController;
 
 /*
 |--------------------------------------------------------------------------
@@ -14,8 +15,8 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::post('/experience', [App\Http\Controllers\ExperienceController::class, 'api_experience']);
-Route::get('/experience', [App\Http\Controllers\ExperienceController::class, 'api_experience']);
+Route::post('/experience', [ExperienceController::class, 'api_experience']);
+Route::get('/experience', [ExperienceController::class, 'api_experience']);
 
 // Archived Routes
 // Route::get('/unified-daily-experience', [App\Http\Controllers\UnifiedDailyExperienceController::class, 'api_unified_daily_experience']);
